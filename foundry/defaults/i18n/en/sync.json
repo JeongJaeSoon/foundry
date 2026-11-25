@@ -1,0 +1,10 @@
+{
+ "status_queue": "queued",
+ "status_in_progress": "in progress",
+ "status_waiting_others": "waiting on others",
+ "status_waiting_owner": "owner check",
+ "status_done": "done",
+ "status_line": "Status: {status} ({at})",
+ "mcp_reconnect": "{target} MCP needs a reconnect (/mcp → Reconnect, not a re-auth): {n} failures in a row — {error}",
+ "jira_transition_failed": "Could not move Jira {tickets} to in review: {error}. Not retried: check the transition or move it by hand."
+}

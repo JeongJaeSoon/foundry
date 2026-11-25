@@ -1,0 +1,46 @@
+{
+ "webapp": {
+  "path": "~/src/webapp",
+  "remote": "origin",
+  "default_branch": "main",
+  "tracker": "jira",
+  "slug": "example-org/webapp",
+  "merge": "auto",
+  "owner_only": false,
+  "argo_app": "production-team-a-apps",
+  "release": "batch"
+ },
+ "gateway": {
+  "path": "~/src/gateway",
+  "remote": "origin",
+  "default_branch": "main",
+  "tracker": "jira",
+  "slug": "<org>/gateway",
+  "merge": "self",
+  "owner_only": false,
+  "argo_app": "production-team-a-apps",
+  "release": "batch"
+ },
+ "notes": {
+  "path": "~/src/notes",
+  "remote": "origin",
+  "default_branch": "main",
+  "tracker": "jira",
+  "slug": "<org>/notes",
+  "merge": "owner",
+  "owner_only": false,
+  "argo_app": null,
+  "release": null
+ },
+ "aws-infra": {
+  "path": "~/src/aws-infra",
+  "remote": "origin",
+  "default_branch": "master",
+  "tracker": "none",
+  "slug": "<org>/aws-infra",
+  "merge": "owner",
+  "owner_only": true,
+  "argo_app": null,
+  "release": null
+ }
+}

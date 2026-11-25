@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.claude-plugin/types/
+crew/.claude-plugin/types/
+crew/tests/.out/
+/crew

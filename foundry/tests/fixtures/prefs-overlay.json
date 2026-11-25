@@ -1,0 +1,182 @@
+{
+ "timezone": "Asia/Tokyo",
+ "language": "ko",
+ "ui": {
+  "language": "ko"
+ },
+ "review": {
+  "people": [
+   {
+    "login": "alice-gh",
+    "slack": "U0000000001",
+    "alias": "alice"
+   },
+   {
+    "login": "bob-gh",
+    "slack": "U0000000002",
+    "alias": "bob"
+   },
+   {
+    "login": "carol-gh",
+    "slack": "U0000000003",
+    "alias": "carol"
+   },
+   {
+    "login": "dave-gh",
+    "slack": "U0000000004",
+    "alias": "dave"
+   }
+  ],
+  "channel": "C0000000001",
+  "repos": [
+   {
+    "repo": "*",
+    "pool": [
+     "alice-gh",
+     "bob-gh",
+     "carol-gh",
+     "dave-gh"
+    ]
+   }
+  ],
+  "human_approval_checks": [
+   "validate-review"
+  ]
+ },
+ "release": {
+  "none": [
+   "*infra-ops",
+   "*-infra",
+   "*iac*"
+  ],
+  "batch_repos": [
+   {
+    "repo": "*webapp",
+    "procedure": "the deploy-team-a skill, section A (release tag vX.Y.Z)",
+    "dev_app": "webapp"
+   },
+   {
+    "repo": "*gateway",
+    "procedure": "the deploy-team-a skill, section B.1 (release.yml with only the changed apps)",
+    "dev_app": "gateway"
+   }
+  ]
+ },
+ "merge": {
+  "owner_repos": [
+   "*-infra",
+   "*iac*"
+  ],
+  "owner_paths": [
+   {
+    "repo": "*infra-ops",
+    "paths": [
+     "*prod*",
+     "*prd*"
+    ]
+   }
+  ],
+  "argo_apps": [
+   {
+    "repo": "*infra-ops",
+    "paths": [
+     "services/team-a/apps/*/environments/production/*"
+    ],
+    "app": "production-team-a-apps"
+   }
+  ],
+  "deploy_pr_authors": [
+   "release-bot"
+  ],
+  "deploy_tag_files": [
+   "services/team-a/apps/*/environments/production/values_*image.yaml"
+  ],
+  "bump_pr_authors": [
+   "release-bot"
+  ]
+ },
+ "required_mcp": [
+  {
+   "stage": "jira-sync",
+   "tracker": "jira",
+   "servers": [
+    "*atlassian*"
+   ]
+  },
+  {
+   "stage": "deploy-verify",
+   "repos": [
+    "*gateway",
+    "*webapp"
+   ],
+   "servers": [
+    "*datadog*"
+   ]
+  }
+ ],
+ "trackers": [
+  "jira"
+ ],
+ "sync": {
+  "comment_footer": "🤖 Claude Code が作成",
+  "languages": {
+   "jira": "ja",
+   "linear": "ja",
+   "obs": "ko"
+  },
+  "jira": {
+   "project": "PROJ",
+   "scope": "example-org work",
+   "site": "the example site"
+  }
+ },
+ "slack": {
+  "footer": "🤖 Claude Code が作成"
+ },
+ "report": {
+  "title": "[foundry] {user} 일보",
+  "kind_emoji": ":kyouyuu-1:"
+ },
+ "schedules": [
+  {
+   "name": "handover",
+   "cron": "0 8 * * *",
+   "run": "foundry report handover"
+  },
+  {
+   "name": "handover-refresh",
+   "cron": "0 10,12,14,16,18,20 * * 1-5",
+   "run": "foundry report handover (인계 요약을 갱신해 보드의 handover 를 최신으로; 출력은 보드가 보여 주니 오너에게 다시 붙이지 않는다)"
+  },
+  {
+   "name": "preflight-night",
+   "cron": "55 21 * * *",
+   "run": "foundry preflight"
+  },
+  {
+   "name": "preflight-morning",
+   "cron": "55 7 * * *",
+   "run": "foundry preflight"
+  },
+  {
+   "name": "kaizen",
+   "cron": "0 9 * * 1",
+   "run": "foundry report kaizen"
+  },
+  {
+   "name": "intake-scan",
+   "cron": "15 9-19 * * 1-5",
+   "run": "foundry intake scan (새 리뷰 요청 · 할당 이슈를 plan 모드 unit + 오너 카드로 제안; 첫 실행은 기록만)"
+  },
+  {
+   "name": "daily-report",
+   "cron": "30 20 * * 1-5",
+   "run": "일보 초안: dispatcher 에 오늘 오너 Slack 수집(`foundry report slack-query` 의 검색 → slack-add / slack-gap / slack-done)을 맡기고, 끝나면 `foundry report daily --draft` 로 초안 카드를 올린다. 게시는 오너 승인 뒤 outbox 로만."
+  },
+  {
+   "name": "review-remind",
+   "cron": "0 8 * * 1-5",
+   "run": "리뷰 리마인드 초안: `foundry report review-gaps --remind --draft` 를 실행해 카드를 올린다(리마인드할 것이 없으면 카드 없음). 오너 승인 뒤 report.remind_time 에 dispatcher 가 보낸다."
+  }
+ ]
+}

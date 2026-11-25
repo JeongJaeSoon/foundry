@@ -1,0 +1,11 @@
+{
+ "_note": "USD per million tokens. input/output and cache_read are list prices (cached model table, 2026-11-03); cache_write is 1.25x input (5-minute write) and haiku-5-5 cache_read is 0.1x input: estimates. Edit freely; `foundry cost` reads this file.",
+ "_estimate": ["cache_write", "claude-haiku-5-5.cache_read"],
+ "models": {
+  "claude-opus-5-5": {"input": 4.0, "output": 20.0, "cache_write": 5.0, "cache_read": 0.20},
+  "claude-sonnet-5-5": {"input": 2.0, "output": 10.0, "cache_write": 2.5, "cache_read": 0.10},
+  "claude-haiku-5-5": {"input": 0.10, "output": 0.50, "cache_write": 0.125, "cache_read": 0.01},
+  "claude-fable-5-2": {"input": 8.0, "output": 40.0, "cache_write": 10.0, "cache_read": 0.20}
+ },
+ "aliases": {"opus": "claude-opus-5-5", "sonnet": "claude-sonnet-5-5", "haiku": "claude-haiku-5-5", "fable": "claude-fable-5-2"}
+}
