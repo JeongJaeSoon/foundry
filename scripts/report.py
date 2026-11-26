@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import i18n  # noqa: E402
 
 STATE = {"reports": {}, "report_slack": {}}
@@ -291,13 +292,14 @@ def release_gaps(snap, journal, p=None, now=None, untracked=True):
         if not t or t < cut or str(pr.get("state") or "merged").upper() not in ("MERGED", "") or excluded_repo(repo, p):
             continue
         seen.add(ref)
-        if factory.release_tag(repo, p) is None:
+        state = factory.pr_release_state(dict(pr, state="MERGED"), p, None, snap, now)
+        if state not in ("release-wait", "released"):
             continue
         tag = pr.get("released") if isinstance(pr.get("released"), str) and not cl.parse_ts(pr["released"]) else None
         tag = tag or covered.get(ref)
         base = {"ref": ref, "repo": repo, "unit": pr.get("unit"), "title": pr.get("title"),
                 "url": _pr_url(repo, pr.get("number"), pr.get("url")), "merged": pr.get("merged")}
-        if not (pr.get("released") or covered.get(ref)):
+        if state == "release-wait":
             rows.append(base | {"gap": "unreleased", "age_h": _age_h(t, now),
                                 "batch": release.batch_entry(repo, p) is not None})
             continue
@@ -643,7 +645,7 @@ def gather(snap, journal, p, date, now=None, gh_rows=None):
     zone = _tz(p)
     gaps = []
     units = snap["units"]
-    opened = [u for u in units.values() if u.get("kind") != "foreman" and u.get("status") not in ("done", "cancelled")]
+    opened = [u for u in units.values() if u.get("kind") != "foreman" and u.get("status") not in graph.CLOSED]
     live = {u["id"] for u in opened if cl.lead_live(snap, u)}  # launching, working, or idle and resumable
     # 가동 라인 is now, not the day: every unit a lead is working (in progress, or with a live session).
     lines_ = [u for u in opened if (u["id"] in live or u.get("status") == "in_progress") and u.get("status") != "waiting_owner"]

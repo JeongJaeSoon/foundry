@@ -10,6 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import i18n  # noqa: E402
 import octicons  # noqa: E402
 
@@ -33,11 +34,12 @@ def _column(u):
     return {"parked": "queue", "blocked": "waiting_others"}.get(u["status"], u["status"])
 
 
-def state_ctx():
-    """What unit_state reads once per board: prefs (release.none, board.archive_days) and the repo registry."""
+def state_ctx(snap=None):
+    """What unit_state reads once per board: prefs (release.none, release.watch_days, board.archive_days), the repo
+    registry and the snapshot (the release units' recorded tags)."""
     import gitpolicy
     import prefs
-    return {"p": prefs.load(), "rs": gitpolicy.repos(), "now": cl.now()}
+    return {"p": prefs.load(), "rs": gitpolicy.repos(), "now": cl.now(), "snap": snap}
 
 
 def _pr_short(x):
@@ -54,12 +56,12 @@ def unit_state(u, ctx):
     import factory
     import release
     st = u["status"]
-    if st not in ("done", "cancelled"):
+    if st not in graph.CLOSED:
         return {"group": _column(u), "label": status_label(st), "detail": None}
     by = {}
     for x in u.get("prs") or []:
         if isinstance(x, dict):
-            by.setdefault(factory.pr_release_state(x, ctx["p"], ctx["rs"]), []).append(x)
+            by.setdefault(factory.pr_release_state(x, ctx["p"], ctx["rs"], ctx.get("snap"), ctx["now"]), []).append(x)
     tags = [x["released"] for x in by.get("released") or [] if isinstance(x.get("released"), str)
             and not cl.parse_ts(x["released"])]
     dep = u.get("deployed") or {}
@@ -107,7 +109,7 @@ def open_approvals(snap):
     request of a finished unit is left out: nothing will ask it again."""
     import approve
     units = snap.get("units") or {}
-    done = {k for k, u in units.items() if u.get("status") in ("done", "cancelled")}
+    done = {k for k, u in units.items() if u.get("status") in graph.CLOSED}
     ttl, now, prs = approve.queued_ttl_hours(), cl.now(), approve._pr_states(snap)
     return sorted((a for a in (snap.get("approvals") or {}).values()
                    if a.get("answer") is None and not (a.get("gave_up") and a.get("unit") in done)
@@ -244,6 +246,7 @@ def _finish(snap, m):
     m.setdefault("night", False)
     m.setdefault("glyphs", "emoji")
     m.setdefault("sync_lagging", [])
+    m.setdefault("stale_foremen", 0)
     for sec in m["sections"]:
         for r in sec["rows"]:
             if not r["sync_text"] and r["id"] in m["sync_lagging"]:
@@ -363,7 +366,7 @@ def _model_core(snap, archived_view=False):
     import watch
     apps = watch.known_apps(snap)
     rows = {k: [] for k in SECTION_KEYS}
-    ctx, n_archived = state_ctx(), 0
+    ctx, n_archived = state_ctx(snap), 0
     import housekeep
     reclaim = housekeep.reclaim_notes()
     sessions = snap.get("sessions") or {}
@@ -383,7 +386,7 @@ def _model_core(snap, archived_view=False):
         waits = u["waits"]
         last_note = u["notes"][-1]["text"] if u["notes"] else ""
         held = u.get("held")
-        if u["status"] in ("done", "cancelled"):
+        if u["status"] in graph.CLOSED:
             summary = state["detail"] or ""  # a finished unit's last wait or note is history, not its state
         elif held:
             summary = "held: " + (held.get("reason") or "")
@@ -395,7 +398,7 @@ def _model_core(snap, archived_view=False):
             summary = last_note
         rows[state["group"]].append({
             "id": u["id"], "title": u["title"], "kind": u["kind"], "status": u["status"], "repo": u.get("repo"),
-            "group": state["group"], "state": state, "closed": u["status"] in ("done", "cancelled"),
+            "group": state["group"], "state": state, "closed": u["status"] in graph.CLOSED,
             "lead": u.get("lead"), "summary": summary[:160], "updated": u["updated"],
             "held": held,
             "session": {k: sess.get(k) for k in ("name", "state", "role", "bg_id", "model", "updated")} if sess else None,
@@ -502,6 +505,8 @@ def band(m):
         parts.append("foreman down")
     if m.get("foreman_restart"):
         parts.append(i18n.t("board.foreman_restart"))
+    if m.get("stale_foremen"):
+        parts.append(i18n.t("board.stale_foremen", n=m["stale_foremen"]))
     if m["halts"]:
         parts.insert(0, f"ANDON {len(m['halts'])}")
     return " | ".join(parts)
@@ -642,15 +647,12 @@ def text_of(m):
     return "\n".join(out)
 
 
-STATUS_KEYS = {"queue": "section_queue", "in_progress": "section_in_progress", "waiting_others": "section_waiting_others",
-               "waiting_owner": "status_owner_check", "blocked": "status_blocked", "done": "section_done",
-               "parked": "status_parked", "cancelled": "status_cancelled"}
+status_label = i18n.status_word  # a unit status's badge label in the UI language; an unknown status as itself
 
 
-def status_label(status):
-    """A unit status's badge label in the UI language; an unknown status shows as itself."""
-    k = STATUS_KEYS.get(status)
-    return i18n.t(f"board.{k}") if k else str(status)
+def pane_words(language=None):
+    """The pane's catalog with the unit status words (`status_<status>`) from i18n.status_word."""
+    return {**i18n.catalog("pane", language), **{f"status_{s}": i18n.status_word(s, language) for s in i18n.STATUS_KEYS}}
 
 
 GH_ICON = {"open": "git-pull-request", "draft": "git-pull-request-draft", "merged": "git-merge",
@@ -745,7 +747,7 @@ def _detail(r):
             (f"<li><details><summary>{e(d['key'])}: {e(d['question'][:100])}…</summary><div>{e(d['question'])}</div></details>"
              if len(d["question"] or "") > 120 else f"<li>{e(d['key'])}: {e(d['question'] or '')}")
             + f" <b>→ {e(str(d['answer'])) if d['answer'] is not None else opened}</b></li>" for d in decs)
-        if r["status"] in ("done", "cancelled") and all(d["answer"] is not None for d in decs):
+        if r["status"] in graph.CLOSED and all(d["answer"] is not None for d in decs):
             parts.append(f"<details><summary><b>{tr('h_decision')}</b> <span class=dim>{tr('answered', n=len(decs))}</span>"
                          f"</summary><ul>{lis}</ul></details>")
         else:
@@ -1057,7 +1059,7 @@ def _age_days(text):
 def archive_candidates(snap, older_days=None, all_done=False, ctx=None):
     """Units `foundry board archive` would move: 릴리스 완료 / 완료 / 취소 by unit_state, not archived yet, closed at
     least older_days ago (any age with all_done)."""
-    ctx = ctx or state_ctx()
+    ctx = ctx or state_ctx(snap)
     out = []
     for u in snap["units"].values():
         if u["kind"] == "foreman" or u.get("archived"):
@@ -1116,7 +1118,7 @@ def main(argv=None):
     elif a.fmt == "json":
         m = model(s, a.view, a.repo, a.archived)
         # The pane's fixed words in prefs ui.language (hooks/board-pane.tsx falls back to Korean without them).
-        m["i18n"] = {"lang": i18n.lang(), "pane": i18n.catalog("pane")}
+        m["i18n"] = {"lang": i18n.lang(), "pane": pane_words()}
         print(json.dumps(m, ensure_ascii=False))
     else:
         print(write_all(s))

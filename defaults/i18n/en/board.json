@@ -104,5 +104,6 @@
  "section_release_wait": "Merged · release wait",
  "section_released": "Released",
  "section_cancelled": "Cancelled",
- "archived_n": "archived {n} · foundry board --archived"
+ "archived_n": "archived {n} · foundry board --archived",
+ "stale_foremen": "stale foremen: {n}"
 }

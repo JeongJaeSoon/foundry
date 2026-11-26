@@ -16,8 +16,8 @@ import test_foundry as tf
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
 SVG = "{http://www.w3.org/2000/svg}"
-FIGURES = ("hierarchy", "components", "sequence", "approval-tiers", "sweeper", "monitor-cron", "dependency-graph",
-           "day-timeline")
+FIGURES = ("hierarchy", "components", "sequence", "unit-lifecycle", "approval-tiers", "sweeper", "monitor-cron",
+           "dependency-graph", "day-timeline")
 
 
 def read(*p):

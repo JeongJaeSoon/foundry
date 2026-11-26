@@ -515,11 +515,20 @@ def session_start(inp):
     import watchers
     if caller == roles.FOREMAN and source in ("startup", "resume"):  # the agent definition is (re)loaded now
         records.append(("foreman.def", {"session": sid, "hash": watchers.foreman_def_hash()}))
+    if caller == roles.FOREMAN:  # every start, /clear included: this session is the foreman stale ones are told from
+        records.append(("foreman.current", {"session": sid, "source": source}))
     if unit:
         lead_type = "foundry:line-lead" if caller == roles.LEAD else "foundry:shop-boss"
         records.append(("session.bind", {"name": roles.session_name(lead_type, unit), "session_id": sid,
                                           "unit": unit, "role": role}))
     snap = cl.append_many(records)
+    if caller == roles.FOREMAN:
+        try:
+            import launcher
+            launcher.prune_foremen(by="session-start")
+            snap = cl.load()
+        except Exception as e:  # the session records above are kept whatever the prune does
+            log_decision(event="SessionStart", error=f"prune_foremen: {e!r}")
     board.write_all(snap)
     if caller in (roles.LEAD, roles.BOSS):
         return lead_session_start(snap, unit, role)
@@ -603,6 +612,16 @@ def session_end(inp):
 
 def recovery_brief(snap):
     lines = ["[foundry] State rebuilt from ~/.local/state/foundry/journal.jsonl."]
+    try:
+        import prefs
+        import watchers
+        missed = watchers.missed_schedules(snap, prefs.load())
+    except Exception as e:  # the brief is never lost over the catch-up list
+        log_decision(event="SessionStart", error=f"missed_schedules: {e!r}")
+        missed = []
+    if missed:
+        lines.append("Schedules missed while the foreman was down (run each once now, then `foundry up`): "
+                     + "; ".join(f"{m['name']} ({m['missed'][5:16].replace('T', ' ')}): {m['run']}" for m in missed))
     need = [u for u in snap["units"].values()
             if u["status"] == "in_progress" and u["kind"] != "foreman" and not cl.lead_live(snap, u)]
     if need:

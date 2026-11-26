@@ -82,7 +82,7 @@ class Catalogued(tf.Base):
     def test_sync_status_line_and_reconnect_text_follow_the_language(self):
         self.lang("en")
         self.assertEqual(self.py("import sync; print(sync.status_word('in_progress'), sync.status_word('odd'))"),
-                         "in progress odd")
+                         "In progress odd")  # 0.1.128: the board's label
         self.assertTrue(self.py("import sync; print(sync.T('status_line', status='done', at='x'))").startswith("Status:"))
         self.lang("ko")
         self.assertEqual(self.py("import sync; print(sync.T('status_line', status=sync.status_word('done'), at='x'))"),

@@ -65,7 +65,9 @@ class PaneFallback(unittest.TestCase):
         body = src.split("export const PANE_KO = {", 1)[1].split("} as const", 1)[0]
         table = {k: json.loads('"' + v.replace('\\\'', "'").replace('"', '\\"') + '"')
                  for k, v in re.findall(r"^\s+(\w+): '((?:[^'\\]|\\.)*)',?$", body, re.M)}
-        self.assertEqual(table, i18n._file("ko", "pane"))
+        # board.pane_words adds the status words to the pane catalog; PANE_KO keeps their ko values as its fallback.
+        self.assertEqual(table, {**i18n._file("ko", "pane"),
+                                 **{f"status_{s}": i18n.status_word(s, "ko") for s in i18n.STATUS_KEYS}})
 
 
 if __name__ == "__main__":

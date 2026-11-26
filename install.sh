@@ -19,8 +19,6 @@ v = sys.argv[2] == "state_dir" and cl.state_dir() or cl.load_config().get(sys.ar
 print(os.path.expanduser(v))' "$P/scripts" "$1"
 }
 STATE="$(config state_dir)"
-FOREMAN_DIR="$(config foreman_dir)"
-WORKTREE_ROOT="$(config worktree_root)"
 REPOS_DIR="${FOUNDRY_REPOS_DIR:-$(config repos_dir)}"
 # Repos to register when a clone exists under REPOS_DIR (space-separated); `foundry init --repo NAME=PATH` adds more.
 INSTALL_REPOS="${FOUNDRY_INSTALL_REPOS:-}"
@@ -28,8 +26,6 @@ INSTALL_REPOS="${FOUNDRY_INSTALL_REPOS:-}"
 # else ~/.claude.json. Plugin install, trust and the foreman below all use this same one.
 CFG_DIR="${CLAUDE_CONFIG_DIR:-}"
 
-mkdir -p "$STATE" "$FOREMAN_DIR" "$WORKTREE_ROOT"
-[ -f "$STATE/config.json" ] || printf '{}\n' > "$STATE/config.json"
 # Trackers are an install setting, none unless FOUNDRY_INSTALL_TRACKERS names them (e.g. jira).
 TRACKERS="${FOUNDRY_INSTALL_TRACKERS:-}"
 TRACKER_ARGS=""
@@ -41,7 +37,6 @@ if [ "$#" -ge 2 ]; then
 else
   python3 "$P/scripts/install_config.py" $TRACKER_ARGS
 fi
-chmod 600 "$STATE/config.json"
 chmod +x "$P/bin/foundry" "$P/bin/foundry-housekeep" "$P/install.sh" "$P/uninstall.sh"
 
 claude plugin marketplace add "$ROOT"
@@ -55,11 +50,10 @@ for r in $INSTALL_REPOS; do
   fi
 done
 
-# The foreman's own directory is not a worktree; trust it once the same way (journaled, backed up).
-python3 "$P/scripts/trust.py" register "$FOREMAN_DIR"
-python3 "$P/scripts/foundry.py" preflight || true
-# `foundry` for plain terminals: a shim that finds the enabled plugin version each time it runs.
-python3 "$P/scripts/shim.py" install || true
+# What `/foundry setup` sets up besides the font (firstrun.base_setup): the state, foreman and worktree
+# directories, config.json (mode 600), the foreman directory's trust entry, preflight and the ~/.local/bin/foundry
+# shim. A refused shim does not stop the install, as before.
+python3 "$P/scripts/foundry.py" setup --shim-only || echo "foundry setup --shim-only failed (exit $?): fix what it printed, then rerun it" >&2
 
 if [ -n "$CFG_DIR" ]; then
   CFG_SHOWN="$CFG_DIR (CLAUDE_CONFIG_DIR)"

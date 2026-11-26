@@ -31,6 +31,10 @@ class ReviewPosts(tg.GitPolicy):
         self.body("rc.json", {"event": "REQUEST_CHANGES", "body": "x"})
         self.allowed(f"{REVIEWS} --input=rc.json")
 
+    def test_reading_reviews_passes(self):
+        self.allowed("gh api repos/example-org/webapp/pulls/12/reviews")
+        self.allowed("gh api repos/example-org/webapp/pulls/12/reviews --paginate --jq '.[].state'")
+
     def test_inline_review_comments_pass(self):
         self.allowed("gh api -X POST repos/example-org/webapp/pulls/12/comments -f body=x -f path=a.py -F line=3 "
                      "-f commit_id=abc")

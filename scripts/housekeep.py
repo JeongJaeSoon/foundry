@@ -27,6 +27,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import wtproof  # noqa: E402
 
 GIT = shlex.split(os.environ.get("FOUNDRY_GIT", "git"))
@@ -168,7 +169,7 @@ def _use_facts(path):
     return {"in_use": None if procs is None else bool(procs), "in_use_by": users_text(procs) if procs else None}
 
 
-FINISHED_UNIT = ("done", "cancelled")
+FINISHED_UNIT = graph.CLOSED
 
 
 def finished_work(f):
@@ -486,7 +487,7 @@ def safe_cleanup(cands, reason="pressure"):
     return results + docker_prune()
 
 
-RECLAIM_STATUS = ("done", "cancelled")
+RECLAIM_STATUS = graph.CLOSED
 HAND_STOPPED = ("stopped", "done", "finished", "completed", "cancelled", "failed", "lost")
 
 

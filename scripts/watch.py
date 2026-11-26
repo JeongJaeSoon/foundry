@@ -17,6 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 
 
 # The PR state each poll saw, by ref: poll_waits reads it to clear the waits of a merged or closed PR.
@@ -228,6 +229,8 @@ def poll_waits(snap, now, errors=None):
     errors = [] if errors is None else errors
     done = set()
     for u in snap["units"].values():
+        if u.get("status") in graph.CLOSED:  # a finished unit's leftover waits move nothing: never polled
+            continue
         for w in u["waits"]:
             try:
                 fp, summary = observe(w, now, snap)

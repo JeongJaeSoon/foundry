@@ -23,6 +23,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import i18n  # noqa: E402
 
 UNIT_FIELDS = {"release": None, "deployed": None}
@@ -86,16 +87,15 @@ def pending(snap, p, now=None, rs=None):
     import gitpolicy
     rs = gitpolicy.repos() if rs is None else rs
     now = now or cl.now()
-    cut = now - dt.timedelta(days=(p.get("release") or {}).get("watch_days", 14))
+    import factory
     covered, out = _covered(snap), {}
     for u in snap["units"].values():
         if u["kind"] == "foreman" or u.get("release"):
             continue
         for pr in u.get("prs") or []:
             ref = f"{pr.get('repo')}#{pr.get('number')}"
-            t = cl.parse_ts(pr.get("merged"))
-            if (str(pr.get("state") or "").upper() != "MERGED" or pr.get("released") or pr.get("deployed")
-                    or not pr.get("repo") or ref in covered or not t or t < cut):
+            if (not pr.get("repo") or ref in covered or not cl.parse_ts(pr.get("merged"))
+                    or factory.pr_release_state(pr, p, rs, snap, now) != "release-wait"):
                 continue
             if batch_entry(pr["repo"], p, rs) is not None:
                 out.setdefault(pr["repo"], []).append({"ref": ref, "unit": u["id"], "merged": pr["merged"]})
@@ -229,7 +229,7 @@ def progress(snap):
     released = _released_refs(snap)
     out = []
     for u in snap["units"].values():
-        if not is_release_unit(u) or u.get("status") in ("done", "cancelled"):
+        if not is_release_unit(u) or u.get("status") in graph.CLOSED:
             continue
         rel = u.get("release") or {}
         prs = list(rel.get("prs") or []) or [f"{p.get('repo')}#{p.get('number')}" for p in u.get("prs") or []
@@ -339,7 +339,7 @@ def done_refusal(snap, u):
 def gate_passed(snap):
     """Open release units whose done gate holds now (every PR in a tag, the dev stage recorded when it has one)."""
     return sorted(u["id"] for u in snap["units"].values()
-                  if (u.get("release") or {}).get("prs") and u["status"] not in ("done", "cancelled")
+                  if (u.get("release") or {}).get("prs") and u["status"] not in graph.CLOSED
                   and done_refusal(snap, u) is None)
 
 

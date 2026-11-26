@@ -42,6 +42,11 @@ The SessionStart hook rebuilds the snapshot from the journal, marks subagents of
 
 Whether `--bg` sessions survive a reboot is unmeasured: assume they do not, and resume.
 
+Older foreman sessions left by a /clear or a new session stop by themselves: each foreman SessionStart and
+`foundry up` stop the idle ones foundry started that are not this session (a busy one waits for the next check).
+`foundry foreman prune --dry-run` lists them; the board says "stale foremen: N" until they are gone. Never stop a
+foreman session by hand.
+
 ## Jira waits
 
 The watcher polls Jira only if `FOUNDRY_JIRA_STATUS_CMD` is configured. Otherwise give a Jira wait an `--until` re-check time; when it comes due, read the ticket yourself and resume or re-wait.

@@ -58,6 +58,20 @@ def catalog(ns, language=None):
     return _CAT[key]
 
 
+# A unit status's word: the board's section label when the status has a section, else the board's status label.
+# The one source the board, views, the pane and sync read, so a relabel is one catalog edit.
+STATUS_KEYS = {"queue": "board.section_queue", "in_progress": "board.section_in_progress",
+               "waiting_others": "board.section_waiting_others", "waiting_owner": "board.status_owner_check",
+               "blocked": "board.status_blocked", "done": "board.section_done", "parked": "board.status_parked",
+               "cancelled": "board.status_cancelled"}
+
+
+def status_word(status, language=None):
+    """A unit status in the UI language (STATUS_KEYS); an unknown status as itself."""
+    k = STATUS_KEYS.get(status)
+    return t(k, language) if k else str(status)
+
+
 def t(key, language=None, **kw):
     """`namespace.key` in the UI language, with named placeholders filled."""
     ns, _, k = key.partition(".")

@@ -42,7 +42,6 @@ def _read(p):
         return json.load(f)
 
 
-FOREMAN_NAME = "foreman"
 LIVE_STATES = ("running", "idle")
 
 
@@ -61,7 +60,8 @@ def foreman_command(cfg):
     cfg_dir = os.environ.get("CLAUDE_CONFIG_DIR") or ""
     prefix = f'CLAUDE_CONFIG_DIR="{cfg_dir}" ' if cfg_dir else ""
     agents = "foundry mcp agent foundry:foreman 2>/dev/null || echo {}"  # the ~/.local/bin shim: no versioned path
-    return (f"cd {d} && {prefix}claude --bg -n {FOREMAN_NAME} --agents \"$({prefix}{agents})\" --agent foundry:foreman "
+    import launcher
+    return (f"cd {d} && {prefix}claude --bg -n {launcher.FOREMAN_NAME} --agents \"$({prefix}{agents})\" --agent foundry:foreman "
             f"--model opus --effort {eff} --permission-mode auto --settings '{_foreman_settings(cfg)}'")
 
 
@@ -74,7 +74,7 @@ def foreman_argv(cfg, prompt=None):
         flag = mcpmap.agent_flag("foundry:foreman")
     except Exception:  # the file agent stays, as `|| echo {}` does in the line
         flag = {}
-    argv = [*launcher.claude_bin(), "--bg", "-n", FOREMAN_NAME, *(["--agents", json.dumps(flag)] if flag else []),
+    argv = [*launcher.claude_bin(), "--bg", "-n", launcher.FOREMAN_NAME, *(["--agents", json.dumps(flag)] if flag else []),
             "--agent", "foundry:foreman", "--model", "opus", "--effort", cfg.get("foreman_effort") or "medium",
             "--permission-mode", "auto", "--settings", _foreman_settings(cfg)]
     cwd = os.path.expanduser(cfg.get("foreman_dir") or cl.load_config()["foreman_dir"])
@@ -84,7 +84,7 @@ def foreman_argv(cfg, prompt=None):
 def live_foremen(entries):
     """`claude agents` entries named foreman that are running or idle."""
     import launcher
-    return [e for e in entries or [] if e.get("name") == FOREMAN_NAME and launcher.classify(e)[0] in LIVE_STATES]
+    return [e for e in entries or [] if e.get("name") == launcher.FOREMAN_NAME and launcher.classify(e)[0] in LIVE_STATES]
 
 
 def cmd_foreman(a):
@@ -93,6 +93,13 @@ def cmd_foreman(a):
         print(foreman_command(cfg))
         return 0
     import launcher
+    if a.sub == "prune":
+        if os.environ.get("FOUNDRY_ROLE") not in (None, "", "foreman"):
+            print("refused: only the foreman or the owner prunes foreman sessions", file=sys.stderr)
+            return 2
+        res = launcher.prune_foremen(a.dry_run, by=os.environ.get("FOUNDRY_ROLE") or "owner")
+        print(json.dumps(res, ensure_ascii=False, indent=1))
+        return 0
     err = cl.require_owner("foundry foreman start")
     if err or os.environ.get("CLAUDECODE"):
         print(err or "refused: run `foundry foreman start` from a plain terminal, not from inside a Claude Code "
@@ -235,6 +242,9 @@ def add_cli(sp):
     st.add_argument("--prompt", help="the first prompt, sent at launch (e.g. \"foundry up\")")
     st.add_argument("--by", choices=("owner",))
     st.set_defaults(func=cmd_foreman)
+    pr = fs.add_parser("prune", help="stop the idle foreman sessions foundry started that are not the current one")
+    pr.add_argument("--dry-run", action="store_true", help="list them, stop nothing, write nothing")
+    pr.set_defaults(func=cmd_foreman)
     p = sp.add_parser("init", help="first-run setup: config, prefs, repos, the foreman start command")
     p.add_argument("--github-login", help="default: `gh api user`")
     p.add_argument("--timezone", help="IANA zone; default: the machine's")

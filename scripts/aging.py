@@ -270,7 +270,7 @@ def due_reviewers(snap, ref, t, zone, days):
     last = {}
     for o in _asks(snap, ref):
         at = outbox.posted_at(o)
-        for who in o.get("to") or []:
+        for who in o.get("to") or [""]:  # "": an ask posted to the channel with no one named (a top-level ask)
             if at and (who not in last or at > last[who][0]):
                 last[who] = (at, o.get("kind"))
     return sorted(who for who, (at, kind) in last.items()
@@ -295,11 +295,13 @@ def actions(snap, t=None, p=None, inv=None):
             if r["kind"] != "pr":
                 continue
             u = (snap["units"].get(r.get("unit")) or {})
-            if not u or u.get("status") == "done":
-                if r["stage"] in ("review", "approved", "draft"):  # a merged PR has nothing left to adopt
+            # An owner PR no unit tracks (factory.collect_prs: owner_prs) ages like a unit's: no unit to adopt it into.
+            owned = not r.get("unit") and r["ref"] in (snap.get("owner_prs") or {})
+            if (not u and not owned) or u.get("status") == "done":
+                if r["stage"] in (*factory.REVIEW_STAGES, "approved", "draft"):  # a merged PR has nothing to adopt
                     out[r["ref"]] = "adopt-or-drop"
                 continue
-            if r["stage"] != "review":
+            if not factory.in_review(r["stage"]):
                 continue
             bd = factory.business_hours(cl.parse_ts(r.get("since")), t, zone) / 24
             if bd >= rv.get("escalate_business_days", 5):
@@ -322,6 +324,10 @@ def pr_cycle(p=None, now=None):
     import factory
     import outbox
     p = p or _p()
+    owned = factory.owner_open_prs()  # read-only, outside the lock; None (gh down) keeps the last list
+    if owned is not None and owned != [{k: v for k, v in x.items() if k != "seen"}
+                                       for x in (cl.load().get("owner_prs") or {}).values()]:
+        cl.append("pr.owner_open", prs=owned)
     live = {}  # cards hinge on PRs no unit tracks: read their state (read-only) outside the journal lock
     for ref in decide.untracked_pr_refs(cl.load()):
         repo, num = ref.rsplit("#", 1)
@@ -341,7 +347,8 @@ def pr_cycle(p=None, now=None):
                 channel, thread, _ = _ask_thread(snap, ref)
                 to = due_reviewers(snap, ref, t, factory._zone(p), p["review"].get("remind_business_days", 1))
                 rec = outbox.record(uid, channel, thread, "review-remind",
-                                    f"{ref} のレビューのリマインドです。お手すきの際にご確認をお願いします。", [ref], to)
+                                    f"{ref} のレビューのリマインドです。お手すきの際にご確認をお願いします。", [ref],
+                                    [w for w in to if w])
                 if rec["oid"] not in (snap.get("outbox") or {}):
                     recs.append(("outbox.add", rec))
                     lines.append(f"pr {ref} ({uid}): no review for {p['review'].get('remind_business_days', 1)} "

@@ -104,5 +104,6 @@
  "section_release_wait": "マージ済み・リリース待ち",
  "section_released": "リリース完了",
  "section_cancelled": "取消",
- "archived_n": "アーカイブ {n} 件 · foundry board --archived"
+ "archived_n": "アーカイブ {n} 件 · foundry board --archived",
+ "stale_foremen": "古い foreman {n} 件"
 }

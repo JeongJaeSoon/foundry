@@ -104,5 +104,6 @@
  "section_release_wait": "머지됨·릴리스 대기",
  "section_released": "릴리스 완료",
  "section_cancelled": "취소",
- "archived_n": "보관 {n}건 · foundry board --archived"
+ "archived_n": "보관 {n}건 · foundry board --archived",
+ "stale_foremen": "오래된 foreman {n}개"
 }

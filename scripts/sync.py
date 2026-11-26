@@ -17,6 +17,7 @@ import uuid
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 
 TARGETS = ("jira", "linear", "github", "obs")
 TRACKER_TARGETS = ("jira", "linear", "github")
@@ -112,7 +113,7 @@ INSTRUCTIONS = {
     "obs": ("Append the lines to `obs_path` with the Obsidian MCP only (mcp__obsidian__vault_append; create with "
             "vault_write if missing). Never the filesystem, reads included."),
 }
-GITHUB_CLOSED = ("done", "cancelled")
+GITHUB_CLOSED = graph.CLOSED
 GITHUB_NO_TICKET = ("This unit has no GitHub issue: create one in `repo` (`gh issue create -R <repo> --title "
                     "<unit title> --body-file <file>`, the file written as for comments), record it with `foundry unit keys <unit> --ticket "
                     "<owner/repo#n>`, then comment on it. With no `repo`, close with `sync done <batch> "
@@ -120,10 +121,9 @@ GITHUB_NO_TICKET = ("This unit has no GitHub issue: create one in `repo` (`gh is
 LINEAR_STATE = {"in_progress": "In Progress", "waiting_others": "In Review", "waiting_owner": "In Review",
                 "done": "Done"}
 def status_word(status):
-    """A unit status in the UI language (`sync` catalog), the raw value when the catalog has no word for it."""
+    """A unit status in the UI language (i18n.status_word, the board's labels), the raw value when it has none."""
     import i18n
-    key = f"status_{status}"
-    return i18n.t("sync." + key) if key in i18n.catalog("sync") else status
+    return i18n.status_word(status)
 
 
 def T(key, **kw):

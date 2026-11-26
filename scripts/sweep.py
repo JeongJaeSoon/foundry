@@ -12,6 +12,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import housekeep  # noqa: E402
 
 
@@ -89,7 +90,7 @@ def prune_agent_sessions(dry_run=False, now=None):
         if not sess:
             continue
         u = snap["units"].get(sess.get("unit") or "") or {}
-        closed = u.get("status") in ("done", "cancelled")
+        closed = u.get("status") in graph.CLOSED
         where = {os.path.realpath(x) for x in (sess.get("cwd"), (u.get("worktree") or {}).get("path")) if x}
         newest = max((_started(e) or 0) for e in rows)
         for e in rows:

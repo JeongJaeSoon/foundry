@@ -50,6 +50,7 @@ def _check_real_home():
 
 atexit.register(_check_real_home)
 FAKE_GH = f"{sys.executable} {os.path.join(ROOT, 'tests', 'fake_gh.py')}"
+os.environ["FOUNDRY_GH"] = FAKE_GH  # in-process calls too (factory.repo_has_tags): never the real gh
 
 
 class Base(unittest.TestCase):

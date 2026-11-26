@@ -32,8 +32,25 @@ def _op_adopted(s, r, ts):
                         "cwd": r.get("cwd"), "ts": ts}
 
 
-OPS = {"unit.adopted": _op_adopted}
+def _op_foreman_current(s, r, ts):
+    s["foreman_current"] = {"session": r.get("session"), "source": r.get("source"), "ts": ts}
+    if r.get("session"):
+        s["foreman_sessions"][r["session"]] = ts
+
+
+def _op_foreman_prune(s, r, ts):
+    s["foreman_prune"] = {"stale": r.get("stale") or [], "stopped": r.get("stopped") or [], "by": r.get("by"), "ts": ts}
+
+
+OPS = {"unit.adopted": _op_adopted, "foreman.current": _op_foreman_current, "foreman.prune": _op_foreman_prune}
+STATE = {"foreman_current": None, "foreman_sessions": {}, "foreman_prune": None}
 UNIT_FIELDS = {"adopted": None}
+FOREMAN_NAME = "foreman"  # the `claude --bg -n` name of foundry's foreman start line (firstrun uses this one)
+
+
+def board(snap, m):
+    """stale foremen: N until a prune finds them gone (the last foreman.prune record; rendering never lists)."""
+    m["stale_foremen"] = len((snap.get("foreman_prune") or {}).get("stale") or [])
 
 
 def emit(obj):
@@ -850,6 +867,68 @@ def cmd_stop(a):
     res = stop_session(u["session"], a.reason)
     emit(res)
     return 1 if "error" in res else 0
+
+
+def pid_alive(pid):
+    """False only when no process has this pid; True when one does or it cannot be told."""
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return False
+    except (OSError, ValueError, TypeError, OverflowError):
+        return True
+    return True
+
+
+def stale_foremen(snap, entries, alive=pid_alive):
+    """[(entry, "stop" | "wait")] for the foreman sessions foundry started that are not the current one: named
+    `foreman` (foundry's start line), recorded as the foreman (foreman.current, or a foreman SessionStart with no
+    unit), not stopped or done. "stop" when `claude agents` says idle, or when the state is unknown and the entry
+    has no pid or a dead one (a leftover the listing still shows as working); busy, or unknown with a live pid,
+    waits for the next check. None, so nothing is stopped, when that cannot be told: no listing, no recorded
+    current foreman, or the current one is not in the listing."""
+    cur = (snap.get("foreman_current") or {}).get("session")
+    if entries is None or not cur or not any(e.get("sessionId") == cur for e in entries):
+        return None
+    ours = set(snap.get("foreman_sessions") or {}) | {
+        sid for sid, x in (snap.get("foundry_sessions") or {}).items() if x.get("role") == "foreman" and not x.get("unit")}
+    out = []
+    for e in entries:
+        sid = e.get("sessionId")
+        if e.get("name") != FOREMAN_NAME or not sid or sid == cur or sid not in ours:
+            continue
+        state = classify(e)[0]
+        if state in ("stopped", "done"):
+            continue
+        gone = state is None and (e.get("pid") in (None, "") or not alive(e["pid"]))
+        out.append((e, "stop" if state == "idle" or gone else "wait"))
+    return out
+
+
+def prune_foremen(dry_run=False, by="foundry"):
+    """Stop the idle stale foremen (stale_foremen) and journal each stop and what is left; with dry_run, list them
+    and write nothing."""
+    entries = list_agents(all_=True)
+    snap = cl.load()
+    cands = stale_foremen(snap, entries)
+    if cands is None:
+        why = ("`claude agents --json` could not be read" if entries is None
+               else "the current foreman is not recorded or not listed")
+        return {"skipped": f"nothing stopped: {why}"}
+    rows = [{"session": e["sessionId"], "id": e.get("id") or e["sessionId"], "state": classify(e)[1], "action": act}
+            for e, act in cands]
+    if dry_run:
+        return {"dry_run": True, "stale": rows}
+    stopped, left = [], []
+    for x in rows:
+        if x["action"] == "stop" and run([*claude_bin(), "stop", x["id"]])[0] == 0:
+            stopped.append(x)
+        else:
+            left.append(x)
+    if rows or (snap.get("foreman_prune") or {}).get("stale"):
+        cl.append("foreman.prune", stopped=stopped, stale=left, by=by,
+                  current=(snap.get("foreman_current") or {}).get("session"))
+    return {"stopped": stopped, "stale": left}
 
 
 def classify(entry):

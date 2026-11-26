@@ -616,13 +616,15 @@ def _apply(s, r):
 
 
 def _mark_closed(s, r, ts):
-    """`closed`: when the unit a record touched last became done/cancelled (the board's archive age); reopening it
-    clears that and its archive mark."""
+    """`closed`: when the unit a record touched last became done/cancelled (the board's archive age; its waits end
+    there); reopening it clears that and its archive mark."""
     for uid in {r.get("id"), r.get("unit")}:
         u = s["units"].get(uid) if isinstance(uid, str) else None
         if not u:
             continue
         if u.get("status") in ("done", "cancelled"):
+            if not u.get("closed"):
+                u["waits"] = []  # closing ends what it waited on; nothing polls a finished unit's waits
             u["closed"] = u.get("closed") or ts
         elif u.get("closed") or u.get("archived"):
             u["closed"] = u["archived"] = None

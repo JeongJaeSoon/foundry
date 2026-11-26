@@ -1,9 +1,4 @@
 {
- "status_queue": "待機",
- "status_in_progress": "進行中",
- "status_waiting_others": "チーム待ち",
- "status_waiting_owner": "オーナー確認",
- "status_done": "完了",
  "status_line": "状態: {status} ({at})",
  "mcp_reconnect": "{target} MCP の再接続が必要 (/mcp → Reconnect、再認証ではない): {n} 回連続失敗 — {error}",
  "jira_transition_failed": "Jira {tickets} を検討中に移せなかった: {error}。再試行しない: 遷移を確認するか手動で移す。"

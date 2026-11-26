@@ -9,6 +9,7 @@ from collections.abc import Mapping
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import i18n  # noqa: E402
 
 
@@ -43,9 +44,7 @@ PR_STATE_KO = Labels({"draft": "draft", "review": "review_wait", "approved": "ap
                       "merge-wait": "merge_wait", "release-wait": "release_wait"})
 WAIT_KO = Labels({"pr-review": "review", "pr-merge": "merge", "ci": "ci", "jira": "jira", "time": "time",
                   "team": "other_team", "deploy-window": "deploy_window"})
-STATUS_KO = Labels({"queue": "status_queue", "in_progress": "status_in_progress",
-                    "waiting_others": "status_waiting_others", "waiting_owner": "owner_check", "done": "status_done",
-                    "parked": "status_parked", "blocked": "status_blocked", "cancelled": "status_cancelled"})
+STATUS_KO = Labels({s: k.split(".", 1)[1] for s, k in i18n.STATUS_KEYS.items()}, ns="board")
 OWNER_RE = re.compile(r"\b(?:owner (?:must|needs? to|should|has to)|needs? (?:the )?owner|for the owner to)\b|오너가", re.I)
 DISPATCH_RE = re.compile(r"\bdispatcher\b|디스패처", re.I)
 
@@ -575,7 +574,7 @@ def wait_unit(snap, uid, w):
     me = units.get(uid) or {}
     tickets = set((me.get("keys") or {}).get("ticket") or []) | {me.get("tracker")} - {None, "none"}
     live = {k: u for k, u in units.items() if k != uid and u.get("kind") != "foreman"
-            and u.get("status") not in ("done", "cancelled")
+            and u.get("status") not in graph.CLOSED
             and tickets & set((u.get("keys") or {}).get("ticket") or [])}
     text = " ".join(str(x.get("text") or "") for x in (me.get("inbox") or []) + (me.get("notes") or []))
     named = [k for k in live if k in text]
@@ -656,7 +655,7 @@ def unit_view(snap, r, t):
         ready, why = readiness(a, prs)
         av.append({"rid": a["rid"], "tier": a.get("tier"), "command": _cmd_of(a), "ready": ready,
                    "why": _tr("not_yet", why=", ".join(why)) if why else None})
-    closed = status in ("done", "cancelled")
+    closed = status in graph.CLOSED
     todos = [gist(td.get("title") or td.get("text") or td.get("kind"), 140) for td in (snap.get("owner_todos") or {}).values()
              if not td.get("closed") and r["id"] in str(td.get("target") or "") + str(td.get("text") or "")]
     if not closed:  # a finished unit's old notes are history, not asks: only open to-dos stay
@@ -724,7 +723,7 @@ TITLE_STATE_RE = re.compile(r"\s+[—–-]\s+[^—–-]*(?:待ち|待機|대기|
 def display_title(title, status):
     """The title lists show: a finished unit's title without a stale trailing state; the detail keeps the original."""
     t = str(title or "")
-    return TITLE_STATE_RE.sub("", t) if status in ("done", "cancelled") and TITLE_STATE_RE.search(t) else t
+    return TITLE_STATE_RE.sub("", t) if status in graph.CLOSED and TITLE_STATE_RE.search(t) else t
 
 
 def board(snap, m):

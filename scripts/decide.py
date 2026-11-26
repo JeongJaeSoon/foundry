@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 
 STATE = {"cards": {}}
 FIELDS = ("id", "unit", "repo", "question", "context", "options", "recommended", "reason", "asked_by",
@@ -124,7 +125,7 @@ def moot_reason(snap, c, live=None):
             why.append(f"승인 요청 {val} 답변됨")
         else:
             st = ((snap.get("units") or {}).get(val) or {}).get("status")
-            if st not in ("done", "cancelled"):
+            if st not in graph.CLOSED:
                 return None
             why.append(f"unit {val} {'완료' if st == 'done' else '취소'}")
     return ", ".join(why)

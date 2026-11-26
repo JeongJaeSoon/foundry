@@ -126,15 +126,7 @@
  "stage_released": "배포 대기",
  "stage_review": "리뷰 대기",
  "stale_n": "오래 대기 {n}",
- "status_blocked": "막힘",
- "status_cancelled": "취소",
- "status_done": "완료",
- "status_in_progress": "진행 중",
  "status_next": "{status} · 다음: {next} ({who})",
- "status_parked": "보류",
- "status_queue": "대기열",
- "status_waiting_others": "팀 대기",
- "status_waiting_owner": "오너 확인",
  "tab_repo": "저장소별",
  "tab_status": "상태별",
  "th_age": "경과",
@@ -200,5 +192,6 @@
  "stall_banner": "⚠ 막힘 · {unit} · {text}",
  "stall_recovered": "자동 복구: {action} · 두 번째 막힘이면 결정 카드",
  "stall_escalated": "두 번째 막힘: 결정 카드로 올림",
- "pill_archived": "보관 {n}"
+ "pill_archived": "보관 {n}",
+ "pill_stale_foremen": "오래된 foreman {n}개"
 }

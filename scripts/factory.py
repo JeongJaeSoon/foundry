@@ -2,7 +2,7 @@
 the weekly kaizen report (near-misses, rework), cost display and unit traceability.
 
 Everything here reads state (plus read-only `gh`, injectable through FOUNDRY_GH); the only writes are its
-own report ops. Cost is display only: no budgets, nothing is parked on it.
+own report ops and the repo_tags.json cache. Cost is display only: no budgets, nothing is parked on it.
 """
 
 import datetime as dt
@@ -31,7 +31,7 @@ OPEN_STAGES = ("review", "approved", "ci-running", "ci-failing")  # an open PR, 
 WAITS_ON = {"draft": "lead", "ci-running": "ci", "ci-failing": "lead", "review": "reviewer", "approved": "merge",
             "merged": "release", "released": "deploy", "deployed-dev": "prod", "prod-waiting": "owner",
             "deployed": None}
-STATE = {"nearmiss": [], "costs": {}, "preflight": None, "handover": None}
+STATE = {"nearmiss": [], "costs": {}, "preflight": None, "handover": None, "owner_prs": {}}
 
 
 # ---------- reducers ----------
@@ -61,8 +61,26 @@ def _op_kaizen(s, r, ts):
     s["kaizen"] = {"text": r.get("text") or "", "ts": ts}
 
 
+def _op_owner_prs(s, r, ts):
+    """The owner's open PRs as the last `gh search prs --author @me` saw them, replaced whole each time."""
+    s["owner_prs"] = {f"{x['repo']}#{x['number']}": dict(x, seen=ts) for x in r.get("prs") or []
+                      if x.get("repo") and x.get("number")}
+
+
 OPS = {"nearmiss": _op_nearmiss, "cost": _op_cost, "preflight": _op_preflight, "report.handover": _op_handover,
-       "report.kaizen": _op_kaizen}
+       "report.kaizen": _op_kaizen, "pr.owner_open": _op_owner_prs}
+
+
+def owner_open_prs():
+    """The owner's open PRs from gh (read-only), as pr.owner_open rows; None when gh did not answer."""
+    rows = gh("search", "prs", "--author", "@me", "--state", "open", "--json",
+              "repository,number,title,url,createdAt,isDraft", "--limit", "100")
+    if not isinstance(rows, list):
+        return None
+    return sorted(({"repo": (x.get("repository") or {}).get("nameWithOwner"), "number": x.get("number"),
+                    "title": x.get("title"), "url": x.get("url"), "createdAt": x.get("createdAt"),
+                    "isDraft": bool(x.get("isDraft"))} for x in rows if isinstance(x, dict)),
+                  key=lambda x: (str(x["repo"]), x["number"] or 0))
 
 
 # ---------- helpers ----------
@@ -199,6 +217,9 @@ def collect_prs(snap, live=None):
             if "#" in ref and (ref not in prs or (done(prs[ref]["unit"]) and not done(uid))):
                 repo, num = ref.rsplit("#", 1)
                 prs[ref] = {**prs.get(ref, {}), "repo": repo, "number": num, "unit": uid}
+    for ref, row in (snap.get("owner_prs") or {}).items():  # the owner's own PRs no unit tracks (unit None)
+        if ref not in prs:
+            prs[ref] = {**row, "state": "OPEN", "unit": None, "opened": row.get("createdAt")}
     for repo, rows in (live or {}).items():
         for row in rows:
             ref = f'{repo}#{row.get("number")}'
@@ -222,15 +243,75 @@ def release_tag(repo, p=None, rs=None):
     return rp.get("tag") or "*"
 
 
-def pr_release_state(pr, p=None, rs=None):
-    """Where a recorded PR stands on the way to a release: open | closed | released | no-release (merged in a repo
-    with no release step, e.g. cluster ops or IaC) | release-wait (merged, no release tag holds it yet)."""
+TAGS_TTL = dt.timedelta(hours=1)
+TAGS_UNKNOWN_TTL = dt.timedelta(minutes=5)  # gh could not tell: asked again sooner, release-wait meanwhile
+_has_tags = {}
+
+
+def repo_has_tags(repo, rs=None):
+    """Whether `repo` has any tag at all: one read-only `gh api repos/<slug>/tags?per_page=1` per repo, kept for
+    the process and in state (repo_tags.json) for TAGS_TTL, or TAGS_UNKNOWN_TTL when gh failed. None when gh
+    cannot tell (no slug, gh failed)."""
+    slug = canonical_repo(repo, rs=rs)
+    if not slug or "/" not in slug:
+        return None
+    fresh = lambda has, at: at and cl.now() - at < (TAGS_UNKNOWN_TTL if has is None else TAGS_TTL)  # noqa: E731
+    if slug in _has_tags and fresh(*_has_tags[slug]):
+        return _has_tags[slug][0]
+    f = cl.path("repo_tags.json")
+    try:
+        with open(f) as fh:
+            cache = json.load(fh)
+    except (OSError, ValueError):
+        cache = {}
+    cache = cache if isinstance(cache, dict) else {}
+    hit = cache.get(slug) if isinstance(cache.get(slug), dict) else {}
+    seen = cl.parse_ts(hit.get("ts")) if isinstance(hit.get("ts"), str) else None
+    has = hit.get("has_tags")
+    if (has is None or isinstance(has, bool)) and fresh(has, seen):
+        _has_tags[slug] = (has, seen)
+        return has
+    rows = gh("api", f"repos/{slug}/tags?per_page=1")
+    has = bool(rows) if isinstance(rows, list) else None
+    _has_tags[slug] = (has, cl.now())
+    cache[slug] = {"has_tags": has, "ts": cl.iso()}
+    try:
+        cl.write_atomic(f, json.dumps(cache, indent=1))
+    except OSError:
+        pass
+    return has
+
+
+def pr_release_state(pr, p=None, rs=None, snap=None, now=None):
+    """Where a recorded PR stands on the way to a release; the board's groups, the inventory and the PR tab all ask
+    this. open | closed | released (pr.released or deployed, or a release unit recorded the tag that holds it) |
+    no-release (merged in a repo with no release step: prefs release.none, repos.json release_tag none, or a repo
+    with no tag at all, repo_has_tags; when gh cannot tell, it is not no-release) |
+    unwatched (merged more than release.watch_days ago and never seen in a tag: the watcher stopped looking, so
+    it is not waiting on anything foundry tracks) | release-wait (merged, no release tag holds it yet)."""
     st = str(pr.get("state") or "").upper()
-    if pr.get("released") or pr.get("deployed"):
+    ref = f"{pr.get('repo')}#{pr.get('number')}"
+    if pr.get("released") or pr.get("deployed") or any(
+            ref in (((u.get("release") or {}).get("released")) or {}) for u in ((snap or {}).get("units") or {}).values()):
         return "released"
-    if st == "MERGED" or pr.get("merged"):
-        return "no-release" if release_tag(pr.get("repo"), p, rs) is None else "release-wait"
-    return "closed" if st == "CLOSED" else "open"
+    if not (st == "MERGED" or pr.get("merged")):
+        return "closed" if st == "CLOSED" else "open"
+    p = p or _prefs()
+    if release_tag(pr.get("repo"), p, rs) is None or repo_has_tags(pr.get("repo"), rs) is False:
+        return "no-release"
+    merged = cl.parse_ts(pr.get("merged")) if isinstance(pr.get("merged"), str) else None
+    days = (p.get("release") or {}).get("watch_days", 14)
+    if merged and days and (now or cl.now()) - merged > dt.timedelta(days=days):
+        return "unwatched"
+    return "release-wait"
+
+
+REVIEW_STAGES = ("review", "ci-running", "ci-failing")  # open, not draft, not approved: a reviewer still owes it
+
+
+def in_review(stage):
+    """Whether a PR stage still waits on a review (0.1.100 split CI out of `review`; reminders cover all three)."""
+    return stage in REVIEW_STAGES
 
 
 @functools.lru_cache(maxsize=None)
@@ -311,9 +392,10 @@ def inventory(snap, t=None, p=None, live=None, rs=None):
         if str(pr.get("state") or "").upper() == "MERGED" or pr.get("merged") or pr.get("released"):
             pr = dict(pr, deploy_stage=deploy_stage(snap, ref, pr))
         stage = stage_of(pr)
-        # Out of stock: closed, released or deployed, or merged in a repo with no release step (IaC, cluster ops).
-        # A release on dev (deployed-dev, prod-waiting) stays until prod has it.
-        if stage in (None, "released", "deployed") or (stage == "merged" and release_tag(pr.get("repo"), p, rs) is None):
+        # Out of stock: closed, released or deployed, or merged and not waiting on a release (pr_release_state). A
+        # release on dev (deployed-dev, prod-waiting) stays until prod has it.
+        if stage in (None, "released", "deployed") or (
+                stage == "merged" and pr_release_state(pr, p, rs, snap, t) != "release-wait"):
             continue
         revs, auto = review.split_reviewers(pr, pool, review._picked(snap, ref, pr.get("unit")))
         since = cl.parse_ts(pr.get("review_requested") or pr.get("opened") or pr.get("createdAt"))

@@ -1,9 +1,4 @@
 {
- "status_queue": "대기",
- "status_in_progress": "진행 중",
- "status_waiting_others": "팀 대기",
- "status_waiting_owner": "오너 확인",
- "status_done": "완료",
  "status_line": "상태: {status} ({at})",
  "mcp_reconnect": "{target} MCP 재연결 필요 (/mcp → Reconnect, 재인증 아님): {n}회 연속 실패 — {error}",
  "jira_transition_failed": "Jira {tickets} 을 검토 중으로 옮기지 못했다: {error}. 재시도하지 않는다: 전이를 확인하거나 수동으로 옮긴다."

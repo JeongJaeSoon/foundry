@@ -21,6 +21,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import i18n  # noqa: E402
 import prefs  # noqa: E402
 import roles  # noqa: E402
@@ -464,7 +465,7 @@ def cycle_stalls(now, p):
             read += ok
             failed += not ok
         elif sess.get("state") in ("done", "stopped", "lost") and u.get("session") == sess.get("name") \
-                and u["status"] not in ("done", "cancelled"):
+                and u["status"] not in graph.CLOSED:
             tp = transcript_path(sess)
             try:
                 why = auth_failure(read_tail(tp)) if tp else None
@@ -667,17 +668,16 @@ def _pr_record(snap, uid, repo, number):
     return next((p for p in u.get("prs") or [] if p.get("repo") == repo and p.get("number") == number), None)
 
 
-def _merged_refs(snap, now, days):
-    """Merged PRs not yet seen in a release, merged within `days` (older ones are left as they are)."""
-    out, cut = {}, now - dt.timedelta(days=days)
+def _merged_refs(snap, now, p):
+    """Merged PRs waiting on a release (factory.pr_release_state: not released, a repo with a release step, merged
+    within release.watch_days; older ones are left as they are)."""
+    import factory
+    out = {}
     for u in snap["units"].values():
         if u["kind"] == "foreman":
             continue
         for pr in u.get("prs") or []:
-            if str(pr.get("state") or "").upper() != "MERGED" or pr.get("released") or pr.get("deployed"):
-                continue
-            t = cl.parse_ts(pr.get("merged"))
-            if pr.get("repo") and pr.get("number") and not (t and t < cut):
+            if pr.get("repo") and pr.get("number") and factory.pr_release_state(pr, p, None, snap, now) == "release-wait":
                 out.setdefault(f"{pr['repo']}#{pr['number']}", u["id"])
     return out
 
@@ -695,7 +695,7 @@ def release_check(now, p, snap):
     rp = p.get("release") or {}
     side = _side("watch-release.json", {})
     recs, lines, listed = [], [], {}
-    for ref, uid in _merged_refs(snap, now, rp.get("watch_days", 14)).items():
+    for ref, uid in _merged_refs(snap, now, p).items():
         repo, num = ref.rsplit("#", 1)
         pattern = factory.release_tag(repo, p)
         ent = side.get(ref) or {}
@@ -746,7 +746,7 @@ def conflict_records(snap, viewed):
     recs, lines = [], []
     for ref, (uid, pr) in sorted(viewed.items()):
         u = snap["units"].get(uid)
-        if not u or u["status"] in ("done", "cancelled") or str(pr.get("state") or "").upper() != "OPEN":
+        if not u or u["status"] in graph.CLOSED or str(pr.get("state") or "").upper() != "OPEN":
             continue
         ms, head = str(pr.get("mergeStateStatus") or "").upper(), pr.get("headRefOid") or ""
         iid = conflict_iid(uid, ref, head)
@@ -961,6 +961,7 @@ def cycle_sessions(now, p):
         lines.append(drift)
     lines += park_lines(p)
     lines += launch_lines(now, p)
+    lines += stuck_lines()
     try:  # sessions ending leave worktrees and containers: announce new cleanup candidates here
         import housekeep
         import sweep
@@ -970,6 +971,27 @@ def cycle_sessions(now, p):
     except Exception as ex:
         cl.append_log("watch.log", {"stream": "sessions", "error": f"housekeeping: {ex}"})
     return [], lines
+
+
+def stuck_lines():
+    """Once per unit and reason: a waiting unit nothing will move (watch.unwatched: no wait a watcher resolves, or no
+    open question for the owner). The foreman resumes its lead or sets the real status; nothing changes here."""
+    import watch
+    snap = cl.load()
+    seen = set(_side("watch-stuck.json", []))
+    apps = watch.known_apps(snap)
+    lines, current = [], set()
+    for u in sorted(snap["units"].values(), key=lambda u: u["id"]):
+        why = watch.unwatched(snap, u, apps)
+        if not why:
+            continue
+        key = f"{u['id']}:{u['status']}"
+        current.add(key)
+        if key not in seen:
+            lines.append(f"unit {u['id']} {u['status']} waits on nothing that will move it ({why}): resume its lead "
+                         f"(`foundry unit resume {u['id']}`) or set its real status")
+    _side_write("watch-stuck.json", sorted(current))
+    return lines
 
 
 def sync_lags(snap, now, p=None):
@@ -1141,6 +1163,30 @@ def cron_key(ti, cid):
     return cid
 
 
+CATCH_UP_H = 24  # a schedule missed longer ago than this is skipped, not run late
+
+
+def missed_schedules(snap, p, now=None):
+    """prefs schedules that fired while the foreman was down (its crons with it): each one's latest fire time after
+    the last foreman heartbeat, within CATCH_UP_H. Nothing while the foreman is alive or before it ever was."""
+    import report
+    now = now or cl.now()
+    last = cl.parse_ts((snap.get("foreman") or {}).get("ts"))
+    if not last or foreman_alive(snap, now):
+        return []
+    zone = report._tz(p)
+    start = max(last, now - dt.timedelta(hours=CATCH_UP_H))
+    out = []
+    for sch in p.get("schedules") or []:
+        t = now.astimezone(zone).replace(second=0, microsecond=0)
+        while t > start:
+            if report._cron_fires(sch["cron"], t):
+                out.append({"name": sch["name"], "missed": cl.iso(t), "run": cron_base_prompt(sch)})
+                break
+            t -= dt.timedelta(minutes=1)
+    return out
+
+
 def up_plan(snap, p):
     import launcher
     timeout_ms = min(p["monitor_max_wait_min"], 30) * 60 * 1000
@@ -1159,9 +1205,12 @@ def up_plan(snap, p):
         if u.get("held") or u.get("blocked_by"):
             blocked.append({"unit": u["id"], "held": (u.get("held") or {}).get("reason"),
                             "blocked_by": u.get("blocked_by") or []})
-    return {"streams": streams, "crons": crons,
+    catch_up = missed_schedules(snap, p)
+    return {"streams": streams, "crons": crons, "catch_up": catch_up,
             "steps": ["Arm every stream with the Monitor tool (timeout_ms as given); re-arm each one when it expires "
                       "or exits.",
+                      *(["Run each catch_up entry once now, oldest first: its schedule fired while the foreman was "
+                         "down, so its cron never ran it."] if catch_up else []),
                       "CronList; CronDelete foundry crons left from an earlier run; CronCreate each entry in crons "
                       f"exactly as given (`cron` is `pref_cron` minus {CRON_LEAD_MIN} min: the scheduler adds up to "
                       f"{CRON_LEAD_MIN} min to recurring jobs, so they fire at or just before the pref time). "
@@ -1274,8 +1323,10 @@ def cmd_up(a):
         return 1 if res["recreate"] or res["missing"] else 0  # the cron answer; rearm rides along
     prefs.ensure_materialized()
     launcher.refresh()
+    pruned = launcher.prune_foremen(by="up")
     snap = cl.load()
     plan = up_plan(snap, _p())
+    plan["foreman_prune"] = pruned
     names = launcher.record_gateway_env()  # names only: every spawn re-reads the values
     if names:
         plan["gateway_env"] = names

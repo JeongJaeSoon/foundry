@@ -41,6 +41,27 @@ A lead does not hold its session open while it waits: short waits (one CI run, a
 for up to 30 minutes; longer waits are recorded and the lead parks until an event resumes it. A unit is marked done
 only with verify evidence recorded after its last code change.
 
+### Unit lifecycle
+
+![Unit lifecycle: statuses, transitions and board groups](img/unit-lifecycle.svg)
+
+| Status | Entered by | Left by |
+| --- | --- | --- |
+| `queue` | `foundry unit new`; a held launch (max_concurrent, PC pressure) shows here too | the lead session starting (`foundry unit launch`) |
+| `in_progress` | the session starting from `queue`; an answered ask with no waits left; the lead's `unit set` | a wait, an ask, `unit set`, done or cancel |
+| `waiting_others` | `foundry wait add` (pr-review, ci, deploy, team, time, ...) | the lead's `unit set`, once the watcher's event resumes it |
+| `waiting_owner` | `foundry decision ask` for the unit | the owner's answer (back to `waiting_others` while waits remain, else `in_progress`) |
+| `blocked` | `unit set --status blocked` (refs from `foundry unit block --on <ref>` are kept apart from the status; the last one resolving records `unit.ready`, section 9) | `unit set` once it can go on |
+| `parked` | `unit set --status parked` (a pause) | `unit set` when the lead goes on (`foundry unit resume` restarts its session) |
+| `done` | the lead after the verify gate; the owner or the foreman on the owner's words | reopening it with `unit set` (clears its archive mark) |
+| `cancelled` | the owner, or the foreman on the owner's words, from any open status | reopening it with `unit set` |
+
+On the board a closed unit sits in the group its PRs give it (`board.unit_state`): Team wait while a PR is still
+open, Merged · release wait while a merged PR in a repo with a release step is in no tag yet, Released for a done
+release unit or a released PR, else Done; a cancelled unit is Cancelled. Released, Done and Cancelled units move to
+the archive view (`foundry board --archived`) on `foundry board archive` or after prefs `board.archive_days`; nothing
+is deleted.
+
 ## 4. Permission tiers
 
 Unattended sessions run in auto mode. The auto mode classifier sees every call first, and its denial is final.

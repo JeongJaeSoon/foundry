@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import prefs  # noqa: E402
 
 TITLE_MAX = 120
@@ -331,7 +332,7 @@ def withdraw_cards(snap, why_by_ref):
         recs.append(("decide.answer", {"id": cid, "key": decide.MOOT, "by": "foundry", "moot": why,
                                        "note": f"자동 종료: {why}"}))
         u = snap["units"].get(c.get("unit")) or {}
-        if u and u.get("mode") == "plan" and u.get("status") not in ("done", "cancelled"):
+        if u and u.get("mode") == "plan" and u.get("status") not in graph.CLOSED:
             recs.append(("unit.status", {"id": u["id"], "status": "cancelled", "note": f"intake 철회: {why}"}))
         out.append(cid)
     if recs:

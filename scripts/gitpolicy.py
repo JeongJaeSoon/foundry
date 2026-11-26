@@ -30,6 +30,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
+import graph  # noqa: E402
 import roles  # noqa: E402
 
 POLICY_DEFAULTS = {"default_branch": "main", "merge": None, "owner_only": False, "argo_app": None, "release": None,
@@ -481,7 +482,7 @@ def held_lock(snap, app, uid):
         if not v:
             continue
         holder = v if isinstance(v, str) else (v.get("unit") or v.get("holder") or v.get("by")) if isinstance(v, dict) else None
-        closed = ((snap.get("units") or {}).get(holder) or {}).get("status") in ("done", "cancelled")
+        closed = ((snap.get("units") or {}).get(holder) or {}).get("status") in graph.CLOSED
         if holder and holder != uid and not closed:  # a closed holder frees the lock, as graph.lock_holder says
             return holder
     return None
@@ -500,7 +501,7 @@ def api_merge_reason(argv, cwd=None):
                      "--match-head-commit", "<sha>"]
             return f"merge through `gh pr merge`, not the API, so the merge policy applies: {_q(fixed)}"
     m = next((API_REVIEW_RE.search(a) for a in argv[1:] if API_REVIEW_RE.search(a)), None)
-    if m and api_review_event(argv, cwd) not in REVIEW_EVENTS:
+    if m and api_writes(argv) and api_review_event(argv, cwd) not in REVIEW_EVENTS:
         return (f"approve through `gh pr review {m.group(2)} -R {m.group(1)} --approve --body ...`, not the API, "
                 "so the approve gate applies; a review POST through the API passes only with event COMMENT or "
                 "REQUEST_CHANGES (`-f event=COMMENT`, or `\"event\"` in the --input JSON)")
@@ -523,6 +524,21 @@ def _flag_values(argv, flags):
             out += [w.split("=", 1)[1] for f in flags if f.startswith("--") and w.startswith(f + "=")]
             out += [w[2:] for f in flags if len(f) == 2 and w.startswith(f) and len(w) > 2 and w[2] != "="]
     return out
+
+
+def api_request(argv):
+    """(method, fields, input) of `gh api` argv: the -X/--method value or None, whether a field flag is given,
+    whether an --input body is given."""
+    method = next((argv[i + 1] for i, w in enumerate(argv[:-1]) if w in ("-X", "--method")), None)
+    method = method or next((w.split("=", 1)[1] for w in argv if w.startswith(("--method=", "-X="))), None)
+    return (method, any(w.startswith(FIELD_FLAGS) for w in argv[2:]),
+            any(w == "--input" or w.startswith("--input=") for w in argv[2:]))
+
+
+def api_writes(argv):
+    """Whether `gh api` argv writes: a method other than GET, or a field or --input body (gh then POSTs)."""
+    method, fields, body = api_request(argv)
+    return (method or ("POST" if fields or body else "GET")).upper() != "GET"
 
 
 def api_review_event(argv, cwd=None):
@@ -548,9 +564,8 @@ def api_review_post(argv, cwd=None):
     """Whether `gh api` argv is the one allowed write: a POST to pulls/<n>/comments, or to pulls/<n>/reviews with
     event COMMENT or REQUEST_CHANGES."""
     paths = [w for w in argv[2:] if API_REVIEW_POST_RE.match(w)]
-    method = next((argv[i + 1] for i, w in enumerate(argv[:-1]) if w in ("-X", "--method")), None)
-    method = (method or next((w.split("=", 1)[1] for w in argv if w.startswith(("--method=", "-X="))), "POST")).upper()
-    if len(paths) != 1 or method != "POST":
+    method = api_request(argv)[0]
+    if len(paths) != 1 or ("POST" if method is None else method).upper() != "POST":
         return False
     if any(GH_API_WRITE_RE.search(w) for w in argv[2:] if w != "--input" and not w.startswith("--input=")):
         return False  # anything else the write rule names (a ref, a merge, GraphQL) keeps it refused
@@ -1125,13 +1140,10 @@ def gh_api_reason(argv, cwd=None):
         return None
     if api_review_post(argv, cwd):
         return None
-    m = next((API_REVIEW_RE.search(a) for a in argv[2:] if API_REVIEW_RE.search(a)), None)
-    if m and any(w == "--input" or w.startswith("--input=") for w in argv):
+    method, fields, body = api_request(argv)
+    if body and any(API_REVIEW_RE.search(a) for a in argv[2:]):
         return api_merge_reason(argv, cwd)
-    method = next((argv[i + 1] for i, w in enumerate(argv[:-1]) if w in ("-X", "--method")), None)
-    method = method or next((w.split("=", 1)[1] for w in argv if w.startswith(("--method=", "-X="))), None)
-    writes = (method or "GET").upper() != "GET" or any(w.startswith(("-f", "-F", "--field", "--raw-field")) for w in argv)
-    if writes and any(GH_API_WRITE_RE.search(w) for w in argv[2:]):
+    if ((method or "GET").upper() != "GET" or fields) and any(GH_API_WRITE_RE.search(w) for w in argv[2:]):
         return ("no branch moves or merges through `gh api`: push the unit branch and merge with "
                 "`gh pr merge <n> -R <owner/repo> --match-head-commit <sha>`")
     return None
