@@ -68,7 +68,9 @@ class OwnerNonce(Review):
             cl._OWNER = True
             self.assertEqual(foundry.with_owner_by(["resume-line"]), ["resume-line", "--by", "owner"])
             self.assertEqual(foundry.with_owner_by(["up"]), ["up"])
-            self.assertEqual(foundry.with_owner_by(["board"]), ["board"])
+            self.assertEqual(foundry.with_owner_by(["rebuild"]), ["rebuild"])
+            self.assertEqual(foundry.with_owner_by(["board", "archive", "--all-done"]),
+                             ["board", "archive", "--all-done", "--by", "owner"])  # 0.1.115: archive is an owner act
             self.assertEqual(foundry.with_owner_by(["resume-line", "--by", "foreman"]), ["resume-line", "--by", "foreman"])
             cl._OWNER = False
             self.assertEqual(foundry.with_owner_by(["resume-line"]), ["resume-line"])

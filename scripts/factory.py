@@ -222,6 +222,17 @@ def release_tag(repo, p=None, rs=None):
     return rp.get("tag") or "*"
 
 
+def pr_release_state(pr, p=None, rs=None):
+    """Where a recorded PR stands on the way to a release: open | closed | released | no-release (merged in a repo
+    with no release step, e.g. cluster ops or IaC) | release-wait (merged, no release tag holds it yet)."""
+    st = str(pr.get("state") or "").upper()
+    if pr.get("released") or pr.get("deployed"):
+        return "released"
+    if st == "MERGED" or pr.get("merged"):
+        return "no-release" if release_tag(pr.get("repo"), p, rs) is None else "release-wait"
+    return "closed" if st == "CLOSED" else "open"
+
+
 @functools.lru_cache(maxsize=None)
 def _remote_slug(path, remote="origin"):
     try:

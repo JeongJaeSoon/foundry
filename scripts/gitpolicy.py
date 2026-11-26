@@ -491,7 +491,7 @@ API_REVIEW_RE = re.compile(r"(?:^|/)repos/([\w.-]+/[\w.-]+)/pulls/(\d+)/reviews\
 API_MERGE_RE = re.compile(r"(?:^|/)repos/([\w.-]+/[\w.-]+)/pulls/(\d+)/merge\b|\b(?:mergePullRequest|enablePullRequestAutoMerge)\b")
 
 
-def api_merge_reason(argv):
+def api_merge_reason(argv, cwd=None):
     """`gh api .../pulls/N/merge` (or the GraphQL merge mutation) is a merge without the merge guard."""
     for a in argv[1:]:
         m = API_MERGE_RE.search(a)
@@ -500,16 +500,67 @@ def api_merge_reason(argv):
                      "--match-head-commit", "<sha>"]
             return f"merge through `gh pr merge`, not the API, so the merge policy applies: {_q(fixed)}"
     m = next((API_REVIEW_RE.search(a) for a in argv[1:] if API_REVIEW_RE.search(a)), None)
-    if m and any("APPROVE" in a for a in argv[1:]):
+    if m and api_review_event(argv, cwd) not in REVIEW_EVENTS:
         return (f"approve through `gh pr review {m.group(2)} -R {m.group(1)} --approve --body ...`, not the API, "
-                "so the approve gate applies")
+                "so the approve gate applies; a review POST through the API passes only with event COMMENT or "
+                "REQUEST_CHANGES (`-f event=COMMENT`, or `\"event\"` in the --input JSON)")
     return None
+
+
+# Owner-approved (0.1.116): inline review comments through the API. A review POST passes with event COMMENT or
+# REQUEST_CHANGES only; an approval keeps going through `gh pr review --approve` and its gate.
+REVIEW_EVENTS = ("COMMENT", "REQUEST_CHANGES")
+API_REVIEW_POST_RE = re.compile(r"^/?repos/[\w.-]+/[\w.-]+/pulls/\d+/(reviews|comments)$")
+FIELD_FLAGS = ("-f", "-F", "--field", "--raw-field")
+
+
+def _flag_values(argv, flags):
+    out = []
+    for i, w in enumerate(argv):
+        if w in flags and i + 1 < len(argv):
+            out.append(argv[i + 1])
+        else:
+            out += [w.split("=", 1)[1] for f in flags if f.startswith("--") and w.startswith(f + "=")]
+            out += [w[2:] for f in flags if len(f) == 2 and w.startswith(f) and len(w) > 2 and w[2] != "="]
+    return out
+
+
+def api_review_event(argv, cwd=None):
+    """The event of a `gh api .../reviews` POST: its `event=` field, else the "event" of its --input JSON file
+    (relative to cwd); None when absent, unreadable, given twice differently, or read from stdin."""
+    evs = {v[6:] for v in _flag_values(argv, FIELD_FLAGS) if v.startswith("event=")}
+    for f in _flag_values(argv, ("--input",)):
+        if f == "-":
+            return None
+        try:
+            with open(os.path.join(os.path.expanduser(cwd or "."), os.path.expanduser(f))) as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            return None
+        if not isinstance(data, dict):
+            return None
+        evs.add(str(data.get("event") or ""))
+    evs.discard("")
+    return evs.pop() if len(evs) == 1 else None
+
+
+def api_review_post(argv, cwd=None):
+    """Whether `gh api` argv is the one allowed write: a POST to pulls/<n>/comments, or to pulls/<n>/reviews with
+    event COMMENT or REQUEST_CHANGES."""
+    paths = [w for w in argv[2:] if API_REVIEW_POST_RE.match(w)]
+    method = next((argv[i + 1] for i, w in enumerate(argv[:-1]) if w in ("-X", "--method")), None)
+    method = (method or next((w.split("=", 1)[1] for w in argv if w.startswith(("--method=", "-X="))), "POST")).upper()
+    if len(paths) != 1 or method != "POST":
+        return False
+    if any(GH_API_WRITE_RE.search(w) for w in argv[2:] if w != "--input" and not w.startswith("--input=")):
+        return False  # anything else the write rule names (a ref, a merge, GraphQL) keeps it refused
+    return API_REVIEW_POST_RE.match(paths[0]).group(1) == "comments" or api_review_event(argv, cwd) in REVIEW_EVENTS
 
 
 def gh_reason(snap, ctx, u, argv, cwd):
     flag_repo, words, rest = gh_parts(argv)
     if words[:1] == ["api"]:
-        return api_merge_reason(strip_env(argv))
+        return api_merge_reason(strip_env(argv), cwd)
     if words[:1] != ["pr"] or len(words) < 2:
         return None
     sub = words[1]
@@ -1067,10 +1118,16 @@ def wrapper_reason(cmd):
 GH_API_WRITE_RE = re.compile(r"/git/refs\b|/merges\b|/git/updateRef|updateRef|mergeBranch|query=@|--input\b")
 
 
-def gh_api_reason(argv):
-    """`gh api` writes that move a branch or merge outside `gh pr merge`; GraphQL from a file is not readable."""
+def gh_api_reason(argv, cwd=None):
+    """`gh api` writes that move a branch or merge outside `gh pr merge`; GraphQL from a file is not readable. A
+    review comment or a COMMENT/REQUEST_CHANGES review POST is not such a write (api_review_post)."""
     if len(argv) < 2 or os.path.basename(argv[0]) != "gh" or argv[1] != "api":
         return None
+    if api_review_post(argv, cwd):
+        return None
+    m = next((API_REVIEW_RE.search(a) for a in argv[2:] if API_REVIEW_RE.search(a)), None)
+    if m and any(w == "--input" or w.startswith("--input=") for w in argv):
+        return api_merge_reason(argv, cwd)
     method = next((argv[i + 1] for i, w in enumerate(argv[:-1]) if w in ("-X", "--method")), None)
     method = method or next((w.split("=", 1)[1] for w in argv if w.startswith(("--method=", "-X="))), None)
     writes = (method or "GET").upper() != "GET" or any(w.startswith(("-f", "-F", "--field", "--raw-field")) for w in argv)
@@ -1087,7 +1144,7 @@ def bash_reason(inp, snap, ctx):
         return why
     try:
         for seg in segments(cmd):
-            why = gh_api_reason(seg)
+            why = gh_api_reason(seg, inp.get("cwd"))
             if why:
                 return why
     except ValueError:

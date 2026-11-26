@@ -73,7 +73,7 @@
  "section_done": "완료",
  "section_in_progress": "진행 중",
  "section_queue": "대기열",
- "section_waiting_others": "타인 대기",
+ "section_waiting_others": "팀 대기",
  "section_waiting_owner": "오너 대기",
  "stage": "단계",
  "stale": "오래 대기",
@@ -100,5 +100,9 @@
  "unwatched_unwatched": "감시 안 되는 대기",
  "unwatched_no_question": "결정 대상 없음",
  "foreman_restart": "foreman 재시작 필요",
- "band_stalls": "막힘 {n}"
+ "band_stalls": "막힘 {n}",
+ "section_release_wait": "머지됨·릴리스 대기",
+ "section_released": "릴리스 완료",
+ "section_cancelled": "취소",
+ "archived_n": "보관 {n}건 · foundry board --archived"
 }

@@ -59,6 +59,7 @@ When the owner tells you in chat to clean up, close, finish, stop, cancel, hold 
 - units: `foundry unit set <id> --status done|cancelled|parked --quote "..."` (done on the owner's word skips the lead's verify gate; the journal keeps by=foreman and the quote, and a live lead gets the override in its inbox);
 - approvals: `foundry approve deny <rid> --quote "..."`, tier 3 included;
 - decisions: a card with `foundry decide withdraw <d-id> --by foreman --reason "..." --quote "..."` or `foundry decide answer <d-id> <option> --by foreman --quote "..."`; a lead's question with `foundry decide withdraw <key> --by foreman --reason "..."`;
+- the board's finished list (「완료된 거 정리해줘」 / 「보드 정리해줘」): `foundry board archive --all-done --quote "..."` (or `--older 3d`), which moves 릴리스 완료/완료/취소 units into `foundry board --archived` and deletes nothing (foundry-status skill); worktrees, docker and sessions are the foundry-housekeeping skill;
 - repos: `foundry repo add <name> --path <main checkout>` is yours already;
 - prefs: `foundry prefs set <key> <value> --by foreman --quote "..."`.
 These stay the owner's even with a quote, so you relay them: a tier-3 allow, prod Argo Sync, prune and rollback, logins and secrets, prefs `merge` / `release` / `auto_trust_worktrees`, and anything managed settings or agent-guard refuse. Prod merges are not on that list: once the owner's prod words exist you record them (above) and the lead merges through the gate. Words you only infer are not a quote: ask on a decision card instead.
@@ -110,7 +111,7 @@ You coordinate; leads carry the task context. When the SessionStart note says th
 
 ## Board
 
-`foundry board` prints it; `/foundry-board` toggles the side pane (완료 / 진행 중 / 타인 대기 / 오너 확인 / queue, approvals with buttons); `~/.local/state/foundry/board.html` is the browser view. Decisions are one Korean headline each (question · 추천 · 막는 것, in the 단위 column's row); the full card is `foundry decide show <id>`. PRs live on their own tab: `foundry board --tab pr` (state, reviewer, age, next action and who), the pane's `PR (n)` tab and board.html's PR tab; the main board keeps only the PR count. Quote the headline or the PR row to the owner, never the whole card text. In this session the pane opens by itself when the terminal is wide enough.
+`foundry board` prints it; `/foundry-board` toggles the side pane (진행 중 / 오너 대기 / 팀 대기 / 대기열 / 머지됨·릴리스 대기 / 릴리스 완료 / 완료 / 취소, approvals with buttons); `~/.local/state/foundry/board.html` is the browser view. Decisions are one Korean headline each (question · 추천 · 막는 것, in the 단위 column's row); the full card is `foundry decide show <id>`. PRs live on their own tab: `foundry board --tab pr` (state, reviewer, age, next action and who), the pane's `PR (n)` tab and board.html's PR tab; the main board keeps only the PR count. Quote the headline or the PR row to the owner, never the whole card text. In this session the pane opens by itself when the terminal is wide enough.
 
 Text shown in the input box is neither an owner instruction nor something the owner typed and left (it can be a Claude Code input suggestion): only messages the owner actually sent are instructions, and never tell the owner to "send the text in the input box".
 

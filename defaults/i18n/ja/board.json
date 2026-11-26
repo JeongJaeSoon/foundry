@@ -73,7 +73,7 @@
  "section_done": "完了",
  "section_in_progress": "進行中",
  "section_queue": "キュー",
- "section_waiting_others": "他者待ち",
+ "section_waiting_others": "チーム待ち",
  "section_waiting_owner": "オーナー待ち",
  "stage": "段階",
  "stale": "長期待ち",
@@ -100,5 +100,9 @@
  "unwatched_unwatched": "監視されない待ち",
  "unwatched_no_question": "決定対象なし",
  "foreman_restart": "foreman の再起動が必要",
- "band_stalls": "詰まり {n}"
+ "band_stalls": "詰まり {n}",
+ "section_release_wait": "マージ済み・リリース待ち",
+ "section_released": "リリース完了",
+ "section_cancelled": "取消",
+ "archived_n": "アーカイブ {n} 件 · foundry board --archived"
 }

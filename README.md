@@ -24,6 +24,11 @@ Linux.
    claude plugin install foundry@foundry
    ```
 
+   then, in a Claude Code session, type `/foundry setup`: it creates what `install.sh` below creates (state,
+   foreman and worktree directories, `config.json`, the foreman directory's trust entry, preflight and the
+   `~/.local/bin/foundry` shim) and is safe to re-run. Until it has run, each session starts with the one line
+   `foundry is not set up: run /foundry setup`; no hook sets anything up by itself.
+
    Or install from a clone, from a plain terminal, not a shell escape inside a Claude session:
 
    ```sh

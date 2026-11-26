@@ -7,7 +7,7 @@
     {
       "name": "foundry",
       "source": "./",
-      "version": "0.1.114",
+      "version": "0.1.117",
       "description": "Local agent foundry: foreman, line-leads, shop-bosses, hands, with hook-enforced chain and file state."
     }
   ]

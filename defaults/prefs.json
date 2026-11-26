@@ -4,6 +4,9 @@
  "ui": {
   "language": "en"
  },
+ "board": {
+  "archive_days": 7
+ },
  "glyphs": "auto",
  "night_window": "22:00-08:00",
  "slack_quiet": "22:00-08:00",

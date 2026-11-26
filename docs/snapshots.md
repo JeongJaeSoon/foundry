@@ -42,35 +42,40 @@ By status By repo PR (2) | all api app docs
    Unit         repo        Title                                                   Priority  Age
    deps         app         Bump test dependencies                                  —         0m
 
-▌  Done (1)
-   Unit         Title                                          PR       Status                Age
-   faq          Update the FAQ page                            #7       merged · to release   0m
-
 ▌  In progress (1)
    Unit         Title                                          PR       Status                Age
    export-lim…  Rate-limit the export API                      —        In progress           0m
 
-▌  Waiting on others (1)
+▌  Waiting on owner (0)
+   -
+
+▌  Team wait (1)
    Unit         Title                                          PR       Status                Age
    login-fix    Fix the login redirect loop                    #41      awaiting review #41   0m
-
-▌  Waiting on owner (1)
-  ┌──────────────┬──────────┬───────────────────────────────────────────────────────────────────┐
-  │ Unit         │ Kind     │ Details                                                           │
-  ├──────────────┼──────────┼───────────────────────────────────────────────────────────────────┤
-  │ export-limit │ decision │ d-0001 · Rate-limit the export API                                │
-  └──────────────┴──────────┴───────────────────────────────────────────────────────────────────┘
 
 ▌  Queue (1)
    Unit         Title                                          PR       Status                Age
    deps         Bump test dependencies                         —        Queue                 0m
+
+▌  Merged · release wait (1)
+   Unit         Title                                          PR       Status                Age
+   faq          Update the FAQ page                            #7       #7                    0m
+
+▌  Released (0)
+   -
+
+▌  Done (0)
+   -
+
+▌  Cancelled (0)
+   -
 
 ▌  Inventory
    PR 2 · In review 1 · To release 1 · Open the PR tab
 
      app PR 1 · Worktrees 1
    Kind         Item                                                Age   Status · waiting
-   📁 worktree  login-fix                                           0m     Waiting on others
+   📁 worktree  login-fix                                           0m     Team wait
 
      api Worktrees 1
    Kind         Item                                                Age   Status · waiting
@@ -150,7 +155,7 @@ Recommended: A — Matches the current peak with room to spare
 
 ```text
 foundry board  (2026-11-20T10:00:00+00:00)  view status / repo all
-Owner attention needed | Done 1  In progress 1  Waiting on others 1  Queue 1 | Waiting on owner 1 | Decisions 1 | Approvals 1 | pressure ok | foreman down
+Owner attention needed | In progress 1  Team wait 1  Queue 1  Merged · release wait 1  Released 0  Done 0  Cancelled 0 | Waiting on owner 0 | Decisions 1 | Approvals 1 | pressure ok | foreman down
 
 ## Decisions (1)
   export-limit · Which default limit should the export API ship with? · Recommended A (60 requests a minute pe…) · Blocks: export-limit  [d-0001 A/B]
@@ -159,20 +164,29 @@ Owner attention needed | Done 1  In progress 1  Waiting on others 1  Queue 1 | W
 ## Next up (1)
   deps example-org/app Bump test dependencies — no priority, age 0.0h
 
-## Done (1)
-  faq                      example-org/docs       Update the FAQ page                  created (PROJ-9 example-org/docs#7)
-
 ## In progress (1)
   export-limit             example-org/api        Rate-limit the export API            Token bucket per API key drafted; needs a limit va (PROJ-15) <blocked by decision:d-0001> [idle]
 
-## Waiting on others (1)
-  login-fix                example-org/app        Fix the login redirect loop          pr-review example-org/app#41 (PROJ-12 example-org/app#41) [approvals 1] [launching]
+## Waiting on owner (0)
+  -
 
-## Waiting on owner (1)
-  export-limit             Decide: d-0001                                               Rate-limit the export API
+## Team wait (1)
+  login-fix                example-org/app        Fix the login redirect loop          pr-review example-org/app#41 (PROJ-12 example-org/app#41) [approvals 1] [launching]
 
 ## Queue (1)
   deps                     example-org/app        Bump test dependencies               
+
+## Merged · release wait (1)
+  faq                      example-org/docs       Update the FAQ page                  #7 (PROJ-9 example-org/docs#7)
+
+## Released (0)
+  -
+
+## Done (0)
+  -
+
+## Cancelled (0)
+  -
 
 ## Approvals (1)
   ap-1 tier 2 login-fix Bash: git push origin login-fix
@@ -184,7 +198,7 @@ Owner attention needed | Done 1  In progress 1  Waiting on others 1  Queue 1 | W
     Worktree /work/wt/api/export-limit                          0.0h  In progress
 
   example-org/app  PR 1 · Worktrees 1
-    Worktree /work/wt/app/login-fix                             0.0h  Waiting on others
+    Worktree /work/wt/app/login-fix                             0.0h  Team wait
 
 ## PC load: ok  not collecting (foreman down)
   load    None/cpu  

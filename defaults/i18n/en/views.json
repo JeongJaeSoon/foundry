@@ -65,7 +65,7 @@
  "status_in_progress": "In progress",
  "status_parked": "On hold",
  "status_queue": "Queue",
- "status_waiting_others": "Waiting on others",
+ "status_waiting_others": "Team wait",
  "th_age": "Age",
  "th_next_who": "Next action (who)",
  "th_state": "State",

@@ -1,7 +1,7 @@
 import type { EngineInterface } from 'claude-code'
 
 // The verbs the owner may run as `/foundry <verb> …`. Everything else in the CLI belongs to the foreman or the leads.
-export const SLASH_VERBS = ['up', 'resume-line', 'halt', 'approve', 'decide', 'prefs', 'unit', 'board', 'report', 'adopt', 'lock'] as const
+export const SLASH_VERBS = ['setup', 'up', 'resume-line', 'halt', 'approve', 'decide', 'prefs', 'unit', 'board', 'report', 'adopt', 'lock'] as const
 
 export const SLASH_USAGE =
   `usage: /foundry <verb> [args]   verbs: ${SLASH_VERBS.join(', ')}\n` +
@@ -74,7 +74,7 @@ export async function ownerRun($: EngineInterface, args: string[], timeoutMs = 1
 export function declareSlash($: EngineInterface) {
   return $.command.register({
     name: 'foundry',
-    description: 'Run a foundry command as the owner (up, resume-line, halt, approve, decide, prefs, unit, board, report, adopt, lock)',
+    description: 'Run a foundry command as the owner (setup, up, resume-line, halt, approve, decide, prefs, unit, board, report, adopt, lock)',
     argumentHint: '<verb> [args]',
     immediate: true,
   })

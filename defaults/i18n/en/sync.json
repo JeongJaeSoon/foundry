@@ -1,7 +1,7 @@
 {
  "status_queue": "queued",
  "status_in_progress": "in progress",
- "status_waiting_others": "waiting on others",
+ "status_waiting_others": "Team wait",
  "status_waiting_owner": "owner check",
  "status_done": "done",
  "status_line": "Status: {status} ({at})",

@@ -1,7 +1,7 @@
 {
  "status_queue": "待機",
  "status_in_progress": "進行中",
- "status_waiting_others": "他者待ち",
+ "status_waiting_others": "チーム待ち",
  "status_waiting_owner": "オーナー確認",
  "status_done": "完了",
  "status_line": "状態: {status} ({at})",

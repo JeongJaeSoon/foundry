@@ -478,7 +478,7 @@ test('a row shows its title, not the branch key; its state in plain Korean, neve
   const line = (await ui.find({ type: 'Button', key: 'PROJ-831' }))!.text
   expect(line).toMatch(/^ PROJ-831 {5}Fix the release wait +— {8}리뷰 대기 #1 {10}3h$/)
   expect(line.match(/PROJ-831/g)).toHaveLength(1)
-  expect([STATUS_KO.waiting_others, STATUS_KO.waiting_owner, STATUS_KO.queue]).toEqual(['타인 대기', '오너 확인', '대기열'])
+  expect([STATUS_KO.waiting_others, STATUS_KO.waiting_owner, STATUS_KO.queue]).toEqual(['팀 대기', '오너 확인', '대기열'])
   await ui.unmount()
   // The first open wait, with who or what it names; else the PRs; a waiting unit with no wait is flagged. Tool
   // approvals, hands and the lead session's state stay out: no done / hand ×n / running / 승인 n tails.
@@ -501,6 +501,11 @@ test('a row shows its title, not the branch key; its state in plain Korean, neve
   expect(await st({ pr_items: [{ state: 'MERGED', released: null }] }, 0)).toBe('머지됨 · 릴리스 대기')
   expect(await st({ pr_items: [{ state: 'MERGED', released: 'v1.1.36' }] }, 0)).toBe('릴리스됨 v1.1.36')
   expect(await st({ pr_items: [{ state: 'MERGED', released: null }] })).toBe('대기 대상 없음')
+  // 0.1.115: a closed row prints board.py's unit_state only: no plan flag, wait or deadline from when it ran.
+  const closed = (group: string, label: string, detail: string | null) =>
+    ({ closed: true, state: { group, label, detail }, mode: 'plan', ...w('time', 'x', null, '2026-11-25T17:10:00+09:00') })
+  expect(await st(closed('done', '완료', null), 0)).toBe('완료')
+  expect(await st(closed('release_wait', '릴리스 대기', '#2'), 0)).toBe('릴리스 대기 #2')
   // board.py's unwatched: waits no watcher resolves, or waiting on the owner with nothing open
   expect(await st({ waits: [{ wid: 'w', kind: 'team', ref: 'x', until: null, note: null }], unwatched: '감시 안 되는 대기' })).toBe('감시 안 되는 대기')
   expect(await st({ unwatched: '결정 대상 없음' }, 1)).toBe('결정 대상 없음')

@@ -47,7 +47,8 @@ EXIT_REFUSED = 2
 
 STATE = {"refs": {}, "locks": {}, "halts": []}
 UNIT_FIELDS = {"blocked_by": [], "resolved": [], "ready": None, "priority": None,
-               "verify": {"passed": False, "evidence": None, "by": None, "ts": None}, "changed": None}
+               "verify": {"passed": False, "evidence": None, "by": None, "ts": None}, "changed": None,
+               "closed": None, "archived": None}
 
 
 def emit(obj):
@@ -168,6 +169,14 @@ def _op_set(s, r, ts):
     u["updated"] = ts
 
 
+def _op_archive(s, r, ts):
+    """`foundry board archive`: the units leave the board for its archive view; nothing is deleted."""
+    for uid in r.get("ids") or []:
+        u = _units(s).get(uid)
+        if u is not None and u.get("status") in CLOSED:
+            u["archived"] = ts
+
+
 def _op_halt(s, r, ts):
     scope = r.get("repo") or "global"
     s["halts"] = [h for h in s["halts"] if h["scope"] != scope] + [
@@ -203,6 +212,7 @@ OPS = {
     "unit.ready": _op_ready,
     "verify.pass": _op_verify,
     "unit.set": _op_set,
+    "unit.archive": _op_archive,
     "owner.override": _noop,   # audit only: the change itself is the unit.set beside it
     "unit.note": _noop,        # audit only: the note reaches the lead through the inbox.add beside it
     "repo.main_moved": _noop,

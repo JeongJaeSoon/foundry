@@ -133,7 +133,7 @@
  "status_next": "{status} · next: {next} ({who})",
  "status_parked": "On hold",
  "status_queue": "Queue",
- "status_waiting_others": "Waiting on others",
+ "status_waiting_others": "Team wait",
  "status_waiting_owner": "Owner check",
  "tab_repo": "By repo",
  "tab_status": "By status",
@@ -199,5 +199,6 @@
  "pill_stall": "stalled {n}",
  "stall_banner": "⚠ stalled · {unit} · {text}",
  "stall_recovered": "auto recovery: {action} · a second stall opens a decision card",
- "stall_escalated": "second stall: escalated to a decision card"
+ "stall_escalated": "second stall: escalated to a decision card",
+ "pill_archived": "archived {n}"
 }

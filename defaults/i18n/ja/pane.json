@@ -133,7 +133,7 @@
  "status_next": "{status} · 次: {next} ({who})",
  "status_parked": "保留",
  "status_queue": "キュー",
- "status_waiting_others": "他者待ち",
+ "status_waiting_others": "チーム待ち",
  "status_waiting_owner": "オーナー確認",
  "tab_repo": "リポジトリ別",
  "tab_status": "状態別",
@@ -199,5 +199,6 @@
  "pill_stall": "詰まり {n}",
  "stall_banner": "⚠ 詰まり · {unit} · {text}",
  "stall_recovered": "自動復旧: {action} · 二度目の詰まりは決定カード",
- "stall_escalated": "二度目の詰まり: 決定カードへ"
+ "stall_escalated": "二度目の詰まり: 決定カードへ",
+ "pill_archived": "アーカイブ {n}"
 }

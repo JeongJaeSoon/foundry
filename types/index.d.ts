@@ -1,4 +1,4 @@
-export type ColumnKey = 'done' | 'in_progress' | 'waiting_others' | 'waiting_owner' | 'queue'
+export type ColumnKey = 'in_progress' | 'waiting_owner' | 'waiting_others' | 'queue' | 'release_wait' | 'released' | 'done' | 'cancelled'
 
 export type Approval = {
   rid: string
@@ -27,6 +27,10 @@ export type BoardRow = {
   title_full?: string
   kind: string
   status: string
+  /** board.py unit_state: the group the row sits in and its state cell (a closed unit's names only its PRs) */
+  group?: ColumnKey
+  state?: { group: ColumnKey; label: string; detail: string | null }
+  closed?: boolean
   repo: string | null
   lead: string | null
   summary: string
@@ -251,6 +255,9 @@ export type BoardModel = {
   next?: { unit: string; title?: string | null; repo?: string | null; why?: string | null; priority?: number | null; created?: string | null }[]
   cards?: Card[]
   cards_open?: number
+  /** units in the archive view (`foundry board --archived`), left off this board */
+  archived_count?: number
+  archived_view?: boolean
   asks?: { key: string; unit: string | null; question: string; asked: string | null; headline?: string | null; outline?: OutlineLine[] }[]
   summary?: { counts: Record<ColumnKey, number>; decisions: number; approvals: number; attention: boolean; owner_wait?: number }
   inventory?: { repos: Record<string, InventoryItem[]>; reviewers: ReviewerLoad[]; warn_at?: number | null }

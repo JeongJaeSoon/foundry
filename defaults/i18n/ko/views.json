@@ -65,7 +65,7 @@
  "status_in_progress": "진행 중",
  "status_parked": "보류",
  "status_queue": "대기열",
- "status_waiting_others": "타인 대기",
+ "status_waiting_others": "팀 대기",
  "th_age": "경과",
  "th_next_who": "다음 행동 (누가)",
  "th_state": "상태",

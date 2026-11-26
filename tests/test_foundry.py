@@ -581,6 +581,8 @@ class StateRecovery(Base):
         self.env["FOUNDRY_ROLE"] = "foreman"
         self.foundry("watch", "stream", "--kind", "sync", "--once")  # a foreman stream's heartbeat: the foreman is up
         del self.env["FOUNDRY_ROLE"]
+        with open(os.path.join(self.dir, "config.json"), "w") as f:  # set up (0.1.117: else it says so, once)
+            f.write("{}")
         self.assertIsNone(self.hook("SessionStart", session_id="S3", source="startup"))
 
     def test_task_steps_mirror_to_the_unit(self):

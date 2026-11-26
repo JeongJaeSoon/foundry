@@ -65,7 +65,7 @@
  "status_in_progress": "進行中",
  "status_parked": "保留",
  "status_queue": "キュー",
- "status_waiting_others": "他者待ち",
+ "status_waiting_others": "チーム待ち",
  "th_age": "経過",
  "th_next_who": "次の行動 (誰が)",
  "th_state": "状態",

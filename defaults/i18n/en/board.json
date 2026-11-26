@@ -73,7 +73,7 @@
  "section_done": "Done",
  "section_in_progress": "In progress",
  "section_queue": "Queue",
- "section_waiting_others": "Waiting on others",
+ "section_waiting_others": "Team wait",
  "section_waiting_owner": "Waiting on owner",
  "stage": "Stage",
  "stale": "Stale",
@@ -100,5 +100,9 @@
  "unwatched_unwatched": "a wait no watcher checks",
  "unwatched_no_question": "nothing for the owner to decide",
  "foreman_restart": "foreman restart needed",
- "band_stalls": "stalled {n}"
+ "band_stalls": "stalled {n}",
+ "section_release_wait": "Merged · release wait",
+ "section_released": "Released",
+ "section_cancelled": "Cancelled",
+ "archived_n": "archived {n} · foundry board --archived"
 }

@@ -96,8 +96,8 @@ def cmd_setup(a):
     if err:
         print(err, file=sys.stderr)
         return 2
-    import shim
-    ok, lines = shim.install()
+    import firstrun
+    ok, lines = firstrun.base_setup()
     print("\n".join(lines))
     if a.shim_only:
         return 0 if ok else 2
@@ -136,9 +136,10 @@ def cmd_setup(a):
 
 
 def add_cli(sp):
-    s = sp.add_parser("setup", help="install the Nerd Font (asks first) and record whether its glyphs render")
+    s = sp.add_parser("setup", help="what install.sh sets up (state, config, trust, preflight, ~/.local/bin/foundry), "
+                                    "then the Nerd Font (asks first) and whether its glyphs render")
     s.add_argument("--install", action="store_true", help="consent to the brew install without a prompt")
-    s.add_argument("--shim-only", action="store_true", help="only install ~/.local/bin/foundry, skip the font steps")
+    s.add_argument("--shim-only", action="store_true", help="only the install.sh part, skip the font steps")
     g = s.add_mutually_exclusive_group()
     g.add_argument("--render-ok", action="store_true", help="the render test line shows icons")
     g.add_argument("--render-bad", action="store_true", help="the render test line shows boxes")

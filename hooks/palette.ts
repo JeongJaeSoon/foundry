@@ -27,6 +27,9 @@ export const SECTION_TONE: Record<string, Tone> = {
   waiting_others: 'others',
   waiting_owner: 'owner',
   queue: 'queue',
+  release_wait: 'others',
+  released: 'done',
+  cancelled: 'queue',
 }
 
 // Unit status → tone: the detail header's badge and the board's status cells. Done green, running blue,

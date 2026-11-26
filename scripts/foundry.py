@@ -378,13 +378,18 @@ def cmd_send(a):
 
 def cmd_board(a):
     import board
+    if a.action == "archive":
+        rc = board.cmd_archive(a)
+        if not rc and not a.dry_run:
+            board.write_all(cl.load())
+        return rc
     snap = cl.load()
     if a.format == "text" and getattr(a, "tab", "main") == "pr":
         print(board.pr_tab_text(board.model(snap)))
     elif a.format == "text":
-        print(board.render_text(snap))
+        print(board.text_of(board.model(snap, archived_view=a.archived)))
     elif a.format == "json":
-        print(json.dumps(board.model(snap), ensure_ascii=False))
+        print(json.dumps(board.model(snap, archived_view=a.archived), ensure_ascii=False))
     else:
         print(board.write_all(snap))
     return 0
@@ -492,6 +497,12 @@ def parser():
 
     b = sp.add_parser("board"); b.add_argument("--format", choices=["text", "json", "html"], default="text")
     b.add_argument("--tab", choices=["main", "pr"], default="main", help="pr: the PR tab")
+    b.add_argument("--archived", action="store_true", help="the archive view: finished units moved off the board")
+    b.add_argument("action", nargs="?", choices=["archive"],
+                   help="archive: move 릴리스 완료/완료/취소 units to the archive view (records only, deletes nothing)")
+    b.add_argument("--older", metavar="3d|12h", help="archive: units closed at least this long ago")
+    b.add_argument("--all-done", action="store_true", help="archive: every finished unit, any age")
+    b.add_argument("--dry-run", action="store_true"); b.add_argument("--by"); b.add_argument("--quote")
     sp.add_parser("rebuild")
     sp.add_parser("compact")
     for mod in cl.modules():

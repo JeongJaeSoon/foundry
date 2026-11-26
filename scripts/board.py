@@ -3,8 +3,8 @@
 import datetime as dt
 import html
 import json
-import re
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -13,7 +13,11 @@ import foundrylib as cl  # noqa: E402
 import i18n  # noqa: E402
 import octicons  # noqa: E402
 
-SECTION_KEYS = ("done", "in_progress", "waiting_others", "waiting_owner", "queue")
+# Fixed top-level groups, in this order on every surface. 팀 대기 is waiting_others; a closed unit lands in one of
+# the last four (or in 팀 대기 while a PR of it is still open), by unit_state.
+SECTION_KEYS = ("in_progress", "waiting_owner", "waiting_others", "queue", "release_wait", "released", "done",
+                "cancelled")
+ARCHIVABLE = ("released", "done", "cancelled")  # never 팀 대기 or release_wait: something still moves there
 
 
 def sections():
@@ -26,7 +30,65 @@ def _column(u):
     if u.get("held") and u["status"] in ("queue", "in_progress"):
         return "queue"
     # Statuses without a section of their own (graph.py) sit next to their nearest one.
-    return {"parked": "queue", "blocked": "waiting_others", "cancelled": "done"}.get(u["status"], u["status"])
+    return {"parked": "queue", "blocked": "waiting_others"}.get(u["status"], u["status"])
+
+
+def state_ctx():
+    """What unit_state reads once per board: prefs (release.none, board.archive_days) and the repo registry."""
+    import gitpolicy
+    import prefs
+    return {"p": prefs.load(), "rs": gitpolicy.repos(), "now": cl.now()}
+
+
+def _pr_short(x):
+    return f"#{x.get('number')}"
+
+
+def unit_state(u, ctx):
+    """The one board state of a unit: {group, label, detail}. The section a row sits in and the state cell the
+    chat board, the side pane and board.html print all come from here. An open unit is its status's group (the
+    surfaces add its wait). A closed unit's cell names only where its PRs stand, never a wait, phase or deadline
+    left over from when it ran: cancelled → 취소; a done release unit → 릴리스 완료; a PR still open → 팀 대기; a PR
+    merged in a repo with a release step and in no release tag yet → 머지됨·릴리스 대기; a released PR → 릴리스 완료;
+    else 완료."""
+    import factory
+    import release
+    st = u["status"]
+    if st not in ("done", "cancelled"):
+        return {"group": _column(u), "label": status_label(st), "detail": None}
+    by = {}
+    for x in u.get("prs") or []:
+        if isinstance(x, dict):
+            by.setdefault(factory.pr_release_state(x, ctx["p"], ctx["rs"]), []).append(x)
+    tags = [x["released"] for x in by.get("released") or [] if isinstance(x.get("released"), str)
+            and not cl.parse_ts(x["released"])]
+    dep = u.get("deployed") or {}
+    tags += [d.get("tag") for env in ("prod", "dev") for d in [dep.get(env)] if isinstance(d, dict) and d.get("tag")]
+    if st == "cancelled":
+        g, detail = "cancelled", None
+    elif release.is_release_unit(u):
+        g, detail = "released", tags[-1] if tags else None
+    elif by.get("open"):
+        g, detail = "waiting_others", " · ".join("PR " + _pr_short(x) for x in by["open"])
+    elif by.get("release-wait"):
+        g, detail = "release_wait", " · ".join(_pr_short(x) for x in by["release-wait"])
+    elif by.get("released"):
+        g, detail = "released", ", ".join(dict.fromkeys(tags)) or None
+    else:
+        g, detail = "done", None
+    return {"group": g, "label": i18n.t(f"board.section_{g}"), "detail": detail}
+
+
+def archived(u, state, ctx):
+    """Whether a closed unit is in the archive view: recorded by `foundry board archive`, or 릴리스 완료 / 완료 / 취소
+    for longer than prefs board.archive_days (0: never by age). 팀 대기 and release-wait units never are."""
+    if state["group"] not in ARCHIVABLE:
+        return False
+    if u.get("archived"):
+        return True
+    days = ((ctx["p"].get("board") or {}).get("archive_days")) or 0
+    t = cl.parse_ts(u.get("closed") or u.get("updated"))
+    return bool(days and t) and (ctx["now"] - t).total_seconds() >= days * 86400
 
 
 def _approval(a):
@@ -60,8 +122,8 @@ ROW_DEFAULTS = {"blocked_by": [], "chain": None, "stall": None, "cost_usd": None
                 "unwatched": None}
 
 
-def model(snap, view="status", repo=None):
-    m = _model_core(snap)
+def model(snap, view="status", repo=None, archived_view=False):
+    m = _model_core(snap, archived_view)
     for mod in cl.modules():
         if hasattr(mod, "board"):
             mod.board(snap, m)
@@ -297,16 +359,22 @@ def cached_metrics(hours):
     return out
 
 
-def _model_core(snap):
+def _model_core(snap, archived_view=False):
     import watch
     apps = watch.known_apps(snap)
     rows = {k: [] for k in SECTION_KEYS}
+    ctx, n_archived = state_ctx(), 0
     import housekeep
     reclaim = housekeep.reclaim_notes()
     sessions = snap.get("sessions") or {}
     approvals = open_approvals(snap)
     for u in snap["units"].values():
         if u["kind"] == "foreman":
+            continue
+        state = unit_state(u, ctx)
+        arch = archived(u, state, ctx)
+        n_archived += arch
+        if arch != archived_view:
             continue
         agent = snap["agents"].get(u.get("agent") or "", {})
         sess = sessions.get(u.get("session") or "")
@@ -315,7 +383,9 @@ def _model_core(snap):
         waits = u["waits"]
         last_note = u["notes"][-1]["text"] if u["notes"] else ""
         held = u.get("held")
-        if held:
+        if u["status"] in ("done", "cancelled"):
+            summary = state["detail"] or ""  # a finished unit's last wait or note is history, not its state
+        elif held:
             summary = "held: " + (held.get("reason") or "")
         elif u["status"] == "waiting_owner" and open_dec:
             summary = open_dec[0]["question"] or ""
@@ -323,8 +393,9 @@ def _model_core(snap):
             summary = "; ".join(f"{w['kind']} {w.get('ref') or w.get('until') or ''}".strip() for w in waits)
         else:
             summary = last_note
-        rows[_column(u)].append({
+        rows[state["group"]].append({
             "id": u["id"], "title": u["title"], "kind": u["kind"], "status": u["status"], "repo": u.get("repo"),
+            "group": state["group"], "state": state, "closed": u["status"] in ("done", "cancelled"),
             "lead": u.get("lead"), "summary": summary[:160], "updated": u["updated"],
             "held": held,
             "session": {k: sess.get(k) for k in ("name", "state", "role", "bg_id", "model", "updated")} if sess else None,
@@ -367,6 +438,7 @@ def _model_core(snap):
     return {"generated": cl.iso(),
             "sections": [{"key": k, "label": label, "count": len(rows[k]), "rows": rows[k]} for k, label in sections()],
             "counts": {k: len(rows[k]) for k in SECTION_KEYS},
+            "archived_view": archived_view, "archived_count": n_archived,
             "approvals": [_approval(a) for a in approvals],
             "escalations": escalations, "toasts": toasts,
             "pressure": {"level": pressure.get("level") or "ok", "reasons": pressure.get("reasons") or []},
@@ -388,8 +460,10 @@ def _refs(r):
 
 
 def flags(r):
-    """Short markers a row carries: stall, sync lag, mismatch, plan mode, blockers."""
+    """Short markers a row carries: stall, sync lag, mismatch, plan mode, blockers. A closed row carries none."""
     out = []
+    if r.get("closed"):
+        return out
     if r.get("stall"):
         out.append(i18n.t("board.flag_stall", text=r["stall"].get("text") or r["stall"].get("kind") or ""))
     if r.get("sync_text"):
@@ -465,7 +539,10 @@ def _outline_html(d, fallback):
 def text_of(m):
     import views
     repo = m["repo_filter"]
-    out = [f"foundry board  ({m['generated']})  view {m['view']} / repo {m['repo_filter']}", band(m)]
+    out = [f"foundry board  ({m['generated']})  view {m['view']}{' / archived' if m.get('archived_view') else ''}"
+           f" / repo {m['repo_filter']}", band(m)]
+    if m.get("archived_count") and not m.get("archived_view"):
+        out.append(i18n.t("board.archived_n", n=m["archived_count"]))
     for h in m["halts"]:
         out.append(f"!! ANDON {h.get('scope') or '-'}: {h.get('reason') or ''} ({h.get('by') or '-'})")
     if m["cards"] or m["asks"]:
@@ -914,6 +991,8 @@ def html_of(m):
                     for p in m["proposals"])
     pr_tab = pr_tab_html(m)
     gen = tr("gen", at=e(m["generated"]), level=e(pr["level"]), reasons=e("; ".join(pr["reasons"])))
+    if m.get("archived_count"):
+        gen += " · " + e(tr("archived_n", n=m["archived_count"]))
     no_li = f"<li class=dim>{none}</li>"
     return f"""<!doctype html><html><head><meta charset="utf-8"><title>foundry board</title>
 <meta http-equiv="refresh" content="60">
@@ -924,7 +1003,8 @@ h1{{font-size:18px;margin:0 0 4px}} .gen{{color:#8b949e;font-size:12px;margin-bo
 section{{margin-bottom:20px}} h2{{font-size:14px;margin:0 0 6px;border-left:4px solid #8b949e;padding-left:8px}}
 h2 span{{color:#8b949e;font-weight:normal}} h3{{font-size:13px;margin:10px 0 4px}} ul.ho{{margin:0;padding-left:18px}}
 section.waiting_owner h2{{border-color:#d29922}} section.in_progress h2{{border-color:#2f81f7}}
-section.waiting_others h2{{border-color:#a371f7}} section.done h2{{border-color:#3fb950}}
+section.waiting_others h2{{border-color:#a371f7}} section.done h2,section.released h2{{border-color:#3fb950}}
+section.release_wait h2{{border-color:#8250df}} section.cancelled h2{{border-color:#8b949e}}
 table{{border-collapse:collapse;width:100%;table-layout:fixed}} th:nth-child(1){{width:18%}} th:nth-child(2){{width:24%}} th:nth-child(4){{width:11%}} th:nth-child(5){{width:8%}} th,td{{text-align:left;padding:5px 8px;border-bottom:1px solid #8b949e33;vertical-align:top}}
 th{{background:#f6f8fa;font-weight:600;font-size:12px}} tr.row{{cursor:pointer}} tr.row:hover{{background:#f6f8fa}}
 td.empty{{color:#8b949e}} .andon{{background:#da3633;color:#fff;padding:6px 10px;font-weight:600;margin-bottom:8px}}
@@ -968,6 +1048,53 @@ def write_all(snap):
     return p
 
 
+def _age_days(text):
+    """`3d`, `12h` or a bare number of days as days; None when it does not parse."""
+    m = re.fullmatch(r"\s*(\d+(?:\.\d+)?)\s*([dh]?)\s*", str(text or ""))
+    return None if not m else float(m.group(1)) / (24 if m.group(2) == "h" else 1)
+
+
+def archive_candidates(snap, older_days=None, all_done=False, ctx=None):
+    """Units `foundry board archive` would move: 릴리스 완료 / 완료 / 취소 by unit_state, not archived yet, closed at
+    least older_days ago (any age with all_done)."""
+    ctx = ctx or state_ctx()
+    out = []
+    for u in snap["units"].values():
+        if u["kind"] == "foreman" or u.get("archived"):
+            continue
+        st = unit_state(u, ctx)
+        if st["group"] not in ARCHIVABLE:
+            continue
+        t = cl.parse_ts(u.get("closed") or u.get("updated"))
+        if all_done or (t and (ctx["now"] - t).total_seconds() >= older_days * 86400):
+            out.append({"id": u["id"], "group": st["group"], "closed": u.get("closed") or u.get("updated")})
+    return sorted(out, key=lambda x: x["closed"] or "")
+
+
+def cmd_archive(a):
+    """`foundry board archive --older 3d | --all-done [--dry-run]`: record finished units as archived (the board's
+    archive view, `foundry board --archived`). It deletes nothing. The owner, or the foreman relaying the owner's
+    words with --quote (「정리해줘」)."""
+    import graph
+    older = _age_days(a.older) if a.older else None
+    if not a.all_done and older is None:
+        return graph.fail("refused: give --older <N>d|<N>h or --all-done")
+    snap = cl.load()
+    cands = archive_candidates(snap, older, a.all_done)
+    if a.dry_run:
+        return graph.emit({"dry_run": True, "would_archive": cands}) or 0
+    by, err = graph.check_by(a.by, "archiving board units")
+    if err:
+        return graph.fail(err)
+    quote = cl.relay_quote(by, a.quote)
+    if by != "owner" and not quote:
+        return graph.fail("refused: the owner archives, or the foreman with --quote \"<the owner's exact words>\"")
+    if cands:
+        cl.append("unit.archive", ids=[x["id"] for x in cands], by=by, older=a.older, all_done=bool(a.all_done),
+                  **({"quote": quote} if quote else {}))
+    return graph.emit({"archived": [x["id"] for x in cands], "by": by, "view": "foundry board --archived"}) or 0
+
+
 def main(argv=None):
     import argparse
     p = argparse.ArgumentParser(prog="board.py")
@@ -976,6 +1103,7 @@ def main(argv=None):
     p.add_argument("--repo")
     p.add_argument("--hours", type=int, choices=[3, 6, 24], default=3)
     p.add_argument("--tab", choices=["main", "pr"], default="main", help="pr: the PR tab (text only)")
+    p.add_argument("--archived", action="store_true", help="the archive view: finished units moved off the board")
     a = p.parse_args(argv)
     if a.fmt == "metrics":
         print(cached_metrics(a.hours))
@@ -984,9 +1112,9 @@ def main(argv=None):
     if a.fmt == "text" and a.tab == "pr":
         print(pr_tab_text(model(s, a.view, a.repo)))
     elif a.fmt == "text":
-        print(render_text(s, a.view, a.repo))
+        print(text_of(model(s, a.view, a.repo, a.archived)))
     elif a.fmt == "json":
-        m = model(s, a.view, a.repo)
+        m = model(s, a.view, a.repo, a.archived)
         # The pane's fixed words in prefs ui.language (hooks/board-pane.tsx falls back to Korean without them).
         m["i18n"] = {"lang": i18n.lang(), "pane": i18n.catalog("pane")}
         print(json.dumps(m, ensure_ascii=False))

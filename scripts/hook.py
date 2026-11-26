@@ -484,6 +484,10 @@ def post_tool_use_failure(inp):
 def session_start(inp):
     snap = cl.load()
     if not is_foundry_session(inp, snap):
+        import firstrun
+        if not firstrun.is_set_up():  # a marketplace install with no setup yet: say so, set nothing up from here
+            out({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": firstrun.NOT_SET_UP}})
+            return
         import watchers
         notice = watchers.owner_notice(snap)
         if notice:

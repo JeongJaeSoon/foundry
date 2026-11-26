@@ -58,13 +58,16 @@ class BoardModelTest(Base):
     def test_columns_carry_korean_labels_and_counts(self):
         m = self.model()
         self.assertEqual([(s["key"], s["label"]) for s in m["sections"]],
-                         [("done", "완료"), ("in_progress", "진행 중"), ("waiting_others", "타인 대기"),
-                          ("waiting_owner", "오너 대기"), ("queue", "대기열")])
+                         [("in_progress", "진행 중"), ("waiting_owner", "오너 대기"), ("waiting_others", "팀 대기"),
+                          ("queue", "대기열"), ("release_wait", "머지됨·릴리스 대기"), ("released", "릴리스 완료"),
+                          ("done", "완료"), ("cancelled", "취소")])
         cols = {s["key"]: [r["id"] for r in s["rows"]] for s in m["sections"]}
         self.assertEqual(cols, {"done": ["eps"], "in_progress": ["alpha"], "waiting_others": ["delta"],
-                                "waiting_owner": ["gamma"], "queue": ["beta"]})
-        self.assertEqual(m["counts"], {"done": 1, "in_progress": 1, "waiting_others": 1, "waiting_owner": 0, "queue": 1})  # 0.1.88: gamma waits on its own card, shown in 결정 필요 only
-        self.assertEqual([s["count"] for s in m["sections"]], [1, 1, 1, 0, 1])
+                                "waiting_owner": ["gamma"], "queue": ["beta"], "release_wait": [], "released": [],
+                                "cancelled": []})
+        self.assertEqual(m["counts"], {"done": 1, "in_progress": 1, "waiting_others": 1, "waiting_owner": 0, "queue": 1,
+                                       "release_wait": 0, "released": 0, "cancelled": 0})  # 0.1.88: gamma waits on its own card, shown in 결정 필요 only
+        self.assertEqual([s["count"] for s in m["sections"]], [1, 0, 1, 1, 0, 0, 1, 0])
 
     def test_band_and_board_share_one_count(self):
         m = self.model()
@@ -160,7 +163,7 @@ class BoardModelTest(Base):
         for want in ("## 진행 중 (1)", "## 오너 대기 (0)", "승인 대기 (2)", "pressure high", "[running]", "PROJ-1"):
             self.assertIn(want, text)
         page = board.render_html(snap)
-        for want in ("타인 대기", "승인 대기", "kubectl apply", "lead-alpha (running)", "pressure high"):
+        for want in ("팀 대기", "승인 대기", "kubectl apply", "lead-alpha (running)", "pressure high"):
             self.assertIn(want, page)
 
     def test_board_json_cli(self):

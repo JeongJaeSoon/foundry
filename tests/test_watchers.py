@@ -226,6 +226,11 @@ class Pressure(Watchers):
 
 
 class Foreman(Watchers):
+    def setUp(self):
+        super().setUp()
+        with open(os.path.join(self.dir, "config.json"), "w") as f:  # a set-up machine (0.1.117)
+            f.write("{}")
+
     def test_down_board_and_owner_session_start(self):
         m = self.board()
         self.assertFalse(m["foreman"]["alive"])

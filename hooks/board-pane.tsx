@@ -106,6 +106,7 @@ export const PANE_KO = {
   pc_load: 'PC 부하 · {level}',
   picked: '{key} 선택',
   pill_approvals: '승인 {n}',
+  pill_archived: '보관 {n}',
   pill_decisions: '결정 {n}',
   pill_owner: '오너 대기 {n}',
   pill_run: '진행 {n}',
@@ -161,7 +162,7 @@ export const PANE_KO = {
   status_next: '{status} · 다음: {next} ({who})',
   status_parked: '보류',
   status_queue: '대기열',
-  status_waiting_others: '타인 대기',
+  status_waiting_others: '팀 대기',
   status_waiting_owner: '오너 확인',
   tab_repo: '저장소별',
   tab_status: '상태별',
@@ -406,6 +407,7 @@ export const STATUS_KO: Record<string, string> = Object.fromEntries(STATUSES.map
 const statusWord = (t: Tr, s: string) => wordOf(t, 'status', STATUSES.includes(s as any) ? s : null) ?? s
 const STATUS_COLOR: Record<string, string> = {
   done: 'success', in_progress: 'suggestion', blocked: 'error', waiting_owner: 'warning', waiting_others: 'warning',
+  released: 'success', release_wait: 'warning',
 }
 // Hours as the shortest readable age; a missing one is a dash, never `-h`.
 export function fmtAge(h: number | null | undefined) {
@@ -879,8 +881,14 @@ function detailOf(r: BoardRow, t: Tr): { t: string; color?: string } | null {
   return null
 }
 // The unit's status in words, then the detail. Under a status heading that already names the status, the detail
-// stands alone (a row whose status differs from its section, such as 막힘 under 타인 대기, keeps both).
+// stands alone (a row whose status differs from its section, such as 막힘 under 팀 대기, keeps both).
 function stateOf(r: BoardRow, t: Tr, section?: string): Cell {
+  // A closed unit's cell is board.py's unit_state alone: no flag, wait, phase or deadline from when it ran.
+  if (r.closed && r.state) {
+    const color = STATUS_COLOR[r.state.group]
+    if (section === r.state.group) return { t: r.state.detail || r.state.label, color, dim: !r.state.detail }
+    return { t: r.state.label, color, sub: r.state.detail ?? '' }
+  }
   const word = statusWord(t, r.status)
   const d = detailOf(r, t)
   if (section === r.status && d) return { t: d.t, color: d.color ?? STATUS_COLOR[r.status] }
@@ -1072,7 +1080,7 @@ export const register: Register = (on, options) => {
           {titleRow(true)}
           <Band m={model} Text={Text} Box={Box} hint={false} pc />
           <Box key="fold-counts">
-            <Text dimColor>{model.sections.map(s => `${s.label} ${s.count}`).join(' · ')}</Text>
+            <Text dimColor>{[...model.sections.map(s => `${s.label} ${s.count}`), ...(model.archived_count ? [t('pill_archived', { n: model.archived_count })] : [])].join(' · ')}</Text>
           </Box>
         </Box>
       )

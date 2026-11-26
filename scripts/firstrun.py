@@ -248,3 +248,39 @@ def add_cli(sp):
     p.add_argument("--dry-run", action="store_true", help="show what would be written; change nothing")
     p.add_argument("--by", choices=("owner",))
     p.set_defaults(func=cmd_init)
+
+
+NOT_SET_UP = "foundry is not set up: run /foundry setup"
+
+
+def is_set_up():
+    """Whether this machine has the config.json install.sh (or `/foundry setup`) writes. Read only: the SessionStart
+    hook asks this and never sets anything up itself."""
+    return os.path.exists(cl.path("config.json"))
+
+
+def base_setup():
+    """install.sh's setup without adding the marketplace or installing the plugin (done already when this runs from
+    the plugin): the state, foreman and worktree directories, config.json (mode 600), the foreman directory's trust
+    entry, preflight and the shim. Idempotent. Returns (ok, lines)."""
+    import contextlib
+    import factory
+    import shim
+    import trust
+    cfg_path = os.path.join(cl.state_dir(), "config.json")
+    if not os.path.exists(cfg_path):
+        cl.write_atomic(cfg_path, "{}\n")
+    os.chmod(cfg_path, 0o600)
+    cfg = cl.load_config()
+    lines = [f"state: {cl.state_dir()} (config.json mode 600)"]
+    for key in ("foreman_dir", "worktree_root"):
+        d = os.path.expanduser(cfg[key])
+        os.makedirs(d, exist_ok=True)
+        lines.append(f"{key}: {d}")
+    lines.append(f"trust {os.path.expanduser(cfg['foreman_dir'])}: "
+                 + trust.register(os.path.expanduser(cfg["foreman_dir"]), None))
+    with contextlib.redirect_stdout(io.StringIO()):
+        rc = factory.cmd_preflight(argparse.Namespace(json=True))
+    lines.append("preflight: " + ("ok" if not rc else "failures (run `foundry preflight`)"))
+    ok, shim_lines = shim.install()
+    return ok, lines + shim_lines
