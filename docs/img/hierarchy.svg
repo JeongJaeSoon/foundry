@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="foundry hierarchy and who may talk to whom">
+<style>
+svg { --fg: #1f1e1c; --muted: #66625b; --card: #ffffff; --card2: #f1efe9; --line: #d6d1c6;
+  --accent: #b95a37; --accent-soft: #f6e4db; --red: #b83227; --red-soft: #f8e1de; --green: #2a7a4b; --green-soft: #def0e4;
+  --amber: #9a6a12; --amber-soft: #f6ecd2; --blue: #2b62a6; --blue-soft: #dfe9f6;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) { svg { --fg: #ebe7df; --muted: #a29d93; --card: #23221f; --card2: #2b2a26; --line: #3f3c36;
+  --accent: #e3906c; --accent-soft: #3b2a21; --red: #f07a6b; --red-soft: #3d2320; --green: #67c48d; --green-soft: #1f3327;
+  --amber: #e2b45a; --amber-soft: #382f1c; --blue: #79aee9; --blue-soft: #1e2a3a; } }
+.bg { fill: var(--card); }
+text { font-family: var(--sans); fill: var(--fg); font-size: 13px; }
+.t-m { font-family: var(--mono); font-size: 12px; } .t-s { font-size: 11.5px; fill: var(--muted); }
+.t-xs { font-size: 10.5px; fill: var(--muted); } .t-b { font-weight: 700; }
+.lbl { font-size: 11px; fill: var(--muted); paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.lbl.red { fill: var(--red); }
+.box { fill: var(--card); stroke: var(--line); stroke-width: 1.3; } .box2 { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.grp { fill: none; stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 5 4; } .grp-fill { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.k-acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; } .k-blue { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.3; }
+.k-green { fill: var(--green-soft); stroke: var(--green); stroke-width: 1.3; } .k-amber { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.3; }
+.k-red { fill: var(--red-soft); stroke: var(--red); stroke-width: 1.3; }
+.e { fill: none; stroke: var(--fg); stroke-width: 1.4; opacity: .75; } .e-acc { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.e-dash { fill: none; stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 5 4; }
+.e-red { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.life { stroke: var(--line); stroke-width: 1.3; stroke-dasharray: 4 4; }
+.mk { fill: var(--fg); opacity: .8; } .mk-acc { fill: var(--accent); } .mk-red { fill: var(--red); } .mk-mut { fill: var(--muted); }
+</style>
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk"/></marker>
+  <marker id="ar-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-acc"/></marker>
+  <marker id="ar-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+  <marker id="ar-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-mut"/></marker>
+</defs>
+<rect class="bg" width="960" height="540" rx="10"/>
+  <path class="e-acc" d="M480,66 V118" marker-end="url(#ar-acc)" marker-start="url(#ar-acc)"/>
+  <text class="lbl" x="488" y="96">chat · claude attach foreman</text>
+  <path class="e" d="M572,147 H676" marker-end="url(#ar)"/><text class="lbl" x="624" y="139" text-anchor="middle">Agent (subagent)</text>
+  <path class="e" d="M388,147 H284" marker-end="url(#ar)"/><text class="lbl" x="336" y="139" text-anchor="middle">verdicts only</text>
+  <path class="e" d="M430,176 L330,258" marker-end="url(#ar)"/>
+  <text class="lbl" x="372" y="206" text-anchor="end">foundry unit launch / resume</text>
+  <path class="e" d="M530,176 L630,258" marker-end="url(#ar)"/>
+  <text class="lbl" x="588" y="206">launch / resume · inbox</text>
+  <path class="e" d="M310,316 V388" marker-end="url(#ar)"/><text class="lbl" x="318" y="360">Agent (subagent)</text>
+  <path class="e" d="M650,316 V388" marker-end="url(#ar)"/><text class="lbl" x="658" y="360">Agent (subagent)</text>
+  <path class="e-dash" d="M412,287 H548" marker-end="url(#ar-mut)" marker-start="url(#ar-mut)"/>
+  <text class="lbl" x="480" y="279" text-anchor="middle">locks · events · notes</text>
+  <text class="lbl red" x="480" y="305" text-anchor="middle">✕ no chat</text>
+  <path class="e-dash" d="M572,170 L812,258" marker-end="url(#ar-mut)"/>
+  <path class="e-dash" d="M360,316 V345 H862 V318" marker-end="url(#ar-mut)"/>
+  <text class="lbl" x="770" y="232">advisor</text>
+  <text class="lbl" x="760" y="340" text-anchor="middle">advisor (shop-boss rarely)</text>
+  <path class="e-red" d="M410,41 H30 V288 H206" marker-end="url(#ar-red)"/>
+  <text class="lbl red" x="215" y="35" text-anchor="middle">✕ owner → lead direct chat</text>
+  <text class="lbl red" x="480" y="378" text-anchor="middle">✕ foreman → hand (hook denies)</text>
+  <rect class="k-acc" x="410" y="16" width="140" height="50" rx="10"/><text x="480" y="46" text-anchor="middle" class="t-b">owner</text>
+  <rect class="k-acc" x="388" y="120" width="184" height="56" rx="8"/>
+  <text x="480" y="143" text-anchor="middle" class="t-b">foreman</text><text x="480" y="162" text-anchor="middle" class="t-s">Opus · medium · --bg</text>
+  <rect class="box" x="678" y="120" width="170" height="56" rx="8"/>
+  <text x="763" y="143" text-anchor="middle" class="t-b">dispatcher</text><text x="763" y="162" text-anchor="middle" class="t-s">Sonnet · intake · records</text>
+  <rect class="box" x="112" y="120" width="170" height="56" rx="8"/>
+  <text x="197" y="143" text-anchor="middle" class="t-b">sweeper-judge</text><text x="197" y="162" text-anchor="middle" class="t-s">Haiku · scan / plan only</text>
+  <rect class="k-amber" x="796" y="260" width="140" height="56" rx="8"/>
+  <text x="866" y="283" text-anchor="middle" class="t-b">advisor</text><text x="866" y="302" text-anchor="middle" class="t-s">Fable · judgment points</text>
+  <rect class="k-blue" x="208" y="260" width="204" height="56" rx="8"/>
+  <text x="310" y="283" text-anchor="middle" class="t-b">line-lead</text><text x="310" y="302" text-anchor="middle" class="t-s">unit 1:1 · --bg + /goal · Opus</text>
+  <rect class="k-blue" x="548" y="260" width="204" height="56" rx="8"/>
+  <text x="650" y="283" text-anchor="middle" class="t-b">shop-boss</text><text x="650" y="302" text-anchor="middle" class="t-s">repo 1:1 · --bg · Sonnet</text>
+  <rect class="grp" x="150" y="390" width="660" height="100" rx="10"/>
+  <text x="166" y="410" class="t-xs">named subagents inside a lead or shop-boss session (e.g. proj-123-test)</text>
+  <text x="796" y="410" class="t-xs" text-anchor="end">cannot use Agent</text>
+  <rect class="k-green" x="176" y="422" width="180" height="52" rx="8"/>
+  <text x="266" y="444" text-anchor="middle" class="t-b">hand-light</text><text x="266" y="462" text-anchor="middle" class="t-s">Haiku · collect · check</text>
+  <rect class="k-green" x="390" y="422" width="180" height="52" rx="8"/>
+  <text x="480" y="444" text-anchor="middle" class="t-b">hand</text><text x="480" y="462" text-anchor="middle" class="t-s">Sonnet · regular coding</text>
+  <rect class="k-green" x="604" y="422" width="180" height="52" rx="8"/>
+  <text x="694" y="444" text-anchor="middle" class="t-b">hand-heavy</text><text x="694" y="462" text-anchor="middle" class="t-s">Opus · hard coding</text>
+  <line x1="40" y1="520" x2="76" y2="520" class="e"/><text x="84" y="524" class="t-s">allowed call</text>
+  <line x1="180" y1="520" x2="216" y2="520" class="e-red"/><text x="224" y="524" class="t-s">denied by the PreToolUse hook</text>
+  <line x1="520" y1="520" x2="556" y2="520" class="e-dash"/><text x="564" y="524" class="t-s">coordination · advisor call (not chat)</text>
+</svg>

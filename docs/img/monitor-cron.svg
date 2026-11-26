@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="470" viewBox="0 0 1000 470" role="img" aria-label="Monitor and cron event flow">
+<style>
+svg { --fg: #1f1e1c; --muted: #66625b; --card: #ffffff; --card2: #f1efe9; --line: #d6d1c6;
+  --accent: #b95a37; --accent-soft: #f6e4db; --red: #b83227; --red-soft: #f8e1de; --green: #2a7a4b; --green-soft: #def0e4;
+  --amber: #9a6a12; --amber-soft: #f6ecd2; --blue: #2b62a6; --blue-soft: #dfe9f6;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) { svg { --fg: #ebe7df; --muted: #a29d93; --card: #23221f; --card2: #2b2a26; --line: #3f3c36;
+  --accent: #e3906c; --accent-soft: #3b2a21; --red: #f07a6b; --red-soft: #3d2320; --green: #67c48d; --green-soft: #1f3327;
+  --amber: #e2b45a; --amber-soft: #382f1c; --blue: #79aee9; --blue-soft: #1e2a3a; } }
+.bg { fill: var(--card); }
+text { font-family: var(--sans); fill: var(--fg); font-size: 13px; }
+.t-m { font-family: var(--mono); font-size: 12px; } .t-s { font-size: 11.5px; fill: var(--muted); }
+.t-xs { font-size: 10.5px; fill: var(--muted); } .t-b { font-weight: 700; }
+.lbl { font-size: 11px; fill: var(--muted); paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.lbl.red { fill: var(--red); }
+.box { fill: var(--card); stroke: var(--line); stroke-width: 1.3; } .box2 { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.grp { fill: none; stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 5 4; } .grp-fill { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.k-acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; } .k-blue { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.3; }
+.k-green { fill: var(--green-soft); stroke: var(--green); stroke-width: 1.3; } .k-amber { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.3; }
+.k-red { fill: var(--red-soft); stroke: var(--red); stroke-width: 1.3; }
+.e { fill: none; stroke: var(--fg); stroke-width: 1.4; opacity: .75; } .e-acc { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.e-dash { fill: none; stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 5 4; }
+.e-red { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.life { stroke: var(--line); stroke-width: 1.3; stroke-dasharray: 4 4; }
+.mk { fill: var(--fg); opacity: .8; } .mk-acc { fill: var(--accent); } .mk-red { fill: var(--red); } .mk-mut { fill: var(--muted); }
+</style>
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk"/></marker>
+  <marker id="ar-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-acc"/></marker>
+  <marker id="ar-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+  <marker id="ar-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-mut"/></marker>
+</defs>
+<rect class="bg" width="1000" height="470" rx="10"/>
+  <rect class="grp-fill" x="20" y="20" width="250" height="300" rx="10"/>
+  <text x="34" y="42" class="t-b">stream scripts</text><text x="34" y="60" class="t-xs">no model · one line only on change</text>
+  <rect class="box" x="34" y="72" width="222" height="36" rx="6"/><text x="145" y="95" text-anchor="middle" class="t-s">PR · CI · reviews (gh)</text>
+  <rect class="box" x="34" y="116" width="222" height="36" rx="6"/><text x="145" y="139" text-anchor="middle" class="t-s">lead session ends (claude agents)</text>
+  <rect class="box" x="34" y="160" width="222" height="36" rx="6"/><text x="145" y="183" text-anchor="middle" class="t-s">PC metrics → metrics.jsonl</text>
+  <rect class="box" x="34" y="204" width="222" height="36" rx="6"/><text x="145" y="227" text-anchor="middle" class="t-s">sync lag (sync.needed &gt; 30 min)</text>
+  <rect class="box" x="34" y="248" width="222" height="36" rx="6"/><text x="145" y="271" text-anchor="middle" class="t-s">stalls (transcript tail)</text>
+  <text x="34" y="306" class="t-xs">built on watch.py · sweep.py · pressure.py</text>
+  <rect class="grp-fill" x="20" y="346" width="250" height="104" rx="10"/>
+  <text x="34" y="368" class="t-b">CronCreate (fixed times only)</text>
+  <text x="34" y="390" class="t-xs">08:00 handover</text><text x="34" y="408" class="t-xs">21:55 · 07:55 preflight</text><text x="34" y="426" class="t-xs">weekly kaizen</text>
+  <text x="34" y="444" class="t-xs">from prefs.schedules · no heartbeat</text>
+  <path class="e" d="M270,170 H338" marker-end="url(#ar)"/><text class="lbl" x="304" y="162" text-anchor="middle">one line</text>
+  <path class="e" d="M270,398 H310 V230 H338" marker-end="url(#ar)"/><text class="lbl" x="316" y="320">timed</text>
+  <rect class="k-acc" x="340" y="110" width="220" height="140" rx="10"/>
+  <text x="450" y="134" text-anchor="middle" class="t-b">foreman (--bg)</text>
+  <text x="450" y="156" text-anchor="middle" class="t-xs">Monitor holds the streams</text>
+  <text x="450" y="174" text-anchor="middle" class="t-xs">re-armed every 30 min or less</text>
+  <text x="450" y="200" text-anchor="middle" class="t-xs">one line = one reason to wake</text>
+  <text x="450" y="226" text-anchor="middle" class="t-xs">+ advisor at judgment points</text>
+  <path class="e" d="M450,250 V300" marker-end="url(#ar)"/><text class="lbl" x="458" y="282">event append</text>
+  <rect class="box2" x="360" y="302" width="180" height="40" rx="6"/><text x="450" y="327" text-anchor="middle" class="t-m">journal.jsonl</text>
+  <path class="e-acc" d="M560,140 H648" marker-end="url(#ar-acc)"/><text class="lbl" x="604" y="132" text-anchor="middle">resume</text>
+  <rect class="k-blue" x="650" y="104" width="160" height="72" rx="8"/>
+  <text x="730" y="128" text-anchor="middle" class="t-b">line-lead</text><text x="730" y="148" text-anchor="middle" class="t-xs">foundry unit resume</text><text x="730" y="164" text-anchor="middle" class="t-xs">the handoff is the prompt</text>
+  <path class="e" d="M560,200 H648" marker-end="url(#ar)"/><text class="lbl" x="604" y="192" text-anchor="middle">show</text>
+  <rect class="box" x="650" y="190" width="160" height="56" rx="8"/>
+  <text x="730" y="212" text-anchor="middle" class="t-b">mod</text><text x="730" y="232" text-anchor="middle" class="t-xs">band · toasts · board rows</text>
+  <path class="e" d="M560,236 H600 V290 H648" marker-end="url(#ar)"/>
+  <rect class="box" x="650" y="266" width="200" height="56" rx="8"/>
+  <text x="750" y="288" text-anchor="middle" class="t-b">decision cards</text><text x="750" y="308" text-anchor="middle" class="t-xs">repeat stall · denial ③ · B intake</text>
+  <rect class="k-amber" x="840" y="104" width="150" height="80" rx="8"/>
+  <text x="915" y="126" text-anchor="middle" class="t-b">a lead's Monitor</text><text x="915" y="146" text-anchor="middle" class="t-xs">short waits, ≤30 min</text><text x="915" y="164" text-anchor="middle" class="t-xs">(one CI run, a deploy sync)</text>
+  <path class="e-dash" d="M810,140 H838" marker-end="url(#ar-mut)" marker-start="url(#ar-mut)"/>
+  <rect class="k-red" x="600" y="370" width="390" height="70" rx="8"/>
+  <text x="614" y="392" class="t-b">if the foreman is down</text>
+  <text x="614" y="412" class="t-xs">the streams stop too; the board and the PC pane say so</text>
+  <text x="614" y="430" class="t-xs">a new session's SessionStart adds one line: run foundry up</text>
+</svg>

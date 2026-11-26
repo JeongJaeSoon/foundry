@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" role="img" aria-label="foundry components">
+<style>
+svg { --fg: #1f1e1c; --muted: #66625b; --card: #ffffff; --card2: #f1efe9; --line: #d6d1c6;
+  --accent: #b95a37; --accent-soft: #f6e4db; --red: #b83227; --red-soft: #f8e1de; --green: #2a7a4b; --green-soft: #def0e4;
+  --amber: #9a6a12; --amber-soft: #f6ecd2; --blue: #2b62a6; --blue-soft: #dfe9f6;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) { svg { --fg: #ebe7df; --muted: #a29d93; --card: #23221f; --card2: #2b2a26; --line: #3f3c36;
+  --accent: #e3906c; --accent-soft: #3b2a21; --red: #f07a6b; --red-soft: #3d2320; --green: #67c48d; --green-soft: #1f3327;
+  --amber: #e2b45a; --amber-soft: #382f1c; --blue: #79aee9; --blue-soft: #1e2a3a; } }
+.bg { fill: var(--card); }
+text { font-family: var(--sans); fill: var(--fg); font-size: 13px; }
+.t-m { font-family: var(--mono); font-size: 12px; } .t-s { font-size: 11.5px; fill: var(--muted); }
+.t-xs { font-size: 10.5px; fill: var(--muted); } .t-b { font-weight: 700; }
+.lbl { font-size: 11px; fill: var(--muted); paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.lbl.red { fill: var(--red); }
+.box { fill: var(--card); stroke: var(--line); stroke-width: 1.3; } .box2 { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.grp { fill: none; stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 5 4; } .grp-fill { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.k-acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; } .k-blue { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.3; }
+.k-green { fill: var(--green-soft); stroke: var(--green); stroke-width: 1.3; } .k-amber { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.3; }
+.k-red { fill: var(--red-soft); stroke: var(--red); stroke-width: 1.3; }
+.e { fill: none; stroke: var(--fg); stroke-width: 1.4; opacity: .75; } .e-acc { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.e-dash { fill: none; stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 5 4; }
+.e-red { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.life { stroke: var(--line); stroke-width: 1.3; stroke-dasharray: 4 4; }
+.mk { fill: var(--fg); opacity: .8; } .mk-acc { fill: var(--accent); } .mk-red { fill: var(--red); } .mk-mut { fill: var(--muted); }
+</style>
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk"/></marker>
+  <marker id="ar-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-acc"/></marker>
+  <marker id="ar-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+  <marker id="ar-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-mut"/></marker>
+</defs>
+<rect class="bg" width="1000" height="700" rx="10"/>
+  <rect class="k-acc" x="20" y="20" width="170" height="50" rx="10"/><text x="105" y="50" text-anchor="middle" class="t-b">owner</text>
+  <rect class="grp-fill" x="20" y="120" width="170" height="330" rx="10"/>
+  <text x="32" y="142" class="t-b">mod</text><text x="32" y="158" class="t-xs">hooks/board-pane.tsx</text>
+  <rect class="box" x="32" y="170" width="146" height="44" rx="6"/><text x="105" y="190" text-anchor="middle">board pane</text><text x="105" y="206" text-anchor="middle" class="t-xs">/foundry-board</text>
+  <rect class="box" x="32" y="222" width="146" height="44" rx="6"/><text x="105" y="242" text-anchor="middle">band</text><text x="105" y="258" text-anchor="middle" class="t-xs">counts as pills</text>
+  <rect class="box" x="32" y="274" width="146" height="44" rx="6"/><text x="105" y="294" text-anchor="middle">toasts</text><text x="105" y="310" text-anchor="middle" class="t-xs">escalations · stalls</text>
+  <rect class="box" x="32" y="326" width="146" height="44" rx="6"/><text x="105" y="346" text-anchor="middle">approve buttons</text><text x="105" y="362" text-anchor="middle" class="t-xs">tier 3 · override</text>
+  <rect class="grp" x="32" y="384" width="146" height="50" rx="6"/><text x="105" y="404" text-anchor="middle" class="t-s">agent.spawn</text><text x="105" y="422" text-anchor="middle" class="t-xs">spawn.ts · chain · model</text>
+  <rect class="grp-fill" x="230" y="20" width="350" height="120" rx="10"/>
+  <text x="244" y="42" class="t-b">agents/*.md</text><text x="566" y="42" text-anchor="end" class="t-xs">model and effort pinned</text>
+  <text x="244" y="66" class="t-m">foreman · line-lead · shop-boss</text>
+  <text x="244" y="88" class="t-m">hand-light · hand · hand-heavy</text>
+  <text x="244" y="110" class="t-m">dispatcher · sweeper-judge · advisor</text>
+  <text x="244" y="130" class="t-xs">bin/foundry → scripts/foundry.py (the only CLI models call)</text>
+  <rect class="grp-fill" x="610" y="20" width="370" height="120" rx="10"/>
+  <text x="624" y="42" class="t-b">skills/</text><text x="966" y="42" text-anchor="end" class="t-xs">loaded through Skill</text>
+  <text x="624" y="64" class="t-m">foundry-launch · -resume · -lead-loop</text>
+  <text x="624" y="84" class="t-m">foundry-feedback · -escalate · -approve</text>
+  <text x="624" y="104" class="t-m">foundry-handoff · -housekeeping · -status</text>
+  <text x="624" y="124" class="t-m">model-selection</text>
+  <rect class="grp-fill" x="230" y="190" width="350" height="200" rx="10"/>
+  <text x="244" y="212" class="t-b">hooks/hooks.json</text><text x="566" y="212" text-anchor="end" class="t-xs">event → script</text>
+  <text x="244" y="236" class="t-xs">SessionStart → hook.py · rebuild · recovery brief</text>
+  <text x="244" y="256" class="t-xs">PreToolUse → hook.py · chain · Bash shape · git guard · Slack</text>
+  <text x="244" y="276" class="t-xs">PostToolUse(+Failure) → hook.py · Slack result · perm.denied</text>
+  <text x="244" y="296" class="t-xs">      push · PR · merge to the journal · PermissionDenied</text>
+  <text x="244" y="316" class="t-xs">SubagentStart/Stop → hook.py · binding · record gate</text>
+  <text x="244" y="336" class="t-xs">PreCompact · SessionEnd · Stop → hook.py · handoff</text>
+  <text x="244" y="356" class="t-xs">PermissionRequest → hook.py → approve.py · tier 0–3</text>
+  <text x="244" y="378" class="t-xs">modules: board-pane.tsx</text>
+  <rect class="grp-fill" x="610" y="190" width="230" height="200" rx="10"/>
+  <text x="624" y="212" class="t-b">scripts/</text>
+  <text x="624" y="236" class="t-m">foundry.py  CLI</text>
+  <text x="624" y="256" class="t-m">launcher.py  --bg sessions</text>
+  <text x="624" y="276" class="t-m">approve.py  approval tiers</text>
+  <text x="624" y="296" class="t-m">watch.py · sweep.py</text>
+  <text x="624" y="316" class="t-m">housekeep.py · pressure.py</text>
+  <text x="624" y="336" class="t-m">board.py · handoff.py</text>
+  <text x="624" y="356" class="t-m">foundrylib.py  journal</text>
+  <text x="624" y="378" class="t-xs">stdlib only · writes under flock</text>
+  <rect class="k-amber" x="650" y="420" width="190" height="80" rx="10"/>
+  <text x="745" y="442" text-anchor="middle" class="t-b">Monitor · CronCreate</text>
+  <text x="725" y="462" text-anchor="middle" class="t-xs">streams print only on events</text>
+  <text x="725" y="478" text-anchor="middle" class="t-xs">handover · kaizen · preflight</text>
+  <text x="725" y="494" text-anchor="middle" class="t-xs">no OS services</text>
+  <rect class="grp-fill" x="230" y="550" width="610" height="130" rx="10"/>
+  <text x="244" y="572" class="t-b">~/.local/state/foundry/</text>
+  <rect class="k-acc" x="244" y="584" width="170" height="38" rx="6"/><text x="329" y="608" text-anchor="middle" class="t-m">journal.jsonl</text>
+  <path class="e-dash" d="M414,603 H440" marker-end="url(#ar-mut)"/>
+  <rect class="box" x="442" y="584" width="184" height="38" rx="6"/><text x="534" y="608" text-anchor="middle" class="t-m">snapshot · board.json</text>
+  <rect class="box" x="640" y="584" width="186" height="38" rx="6"/><text x="733" y="608" text-anchor="middle" class="t-m">handoffs/&lt;unit&gt;.md</text>
+  <text x="244" y="646" class="t-m">repos.json · prefs.json · config.json (600)</text>
+  <text x="244" y="666" class="t-m">metrics.jsonl · enforce.log</text>
+  <rect class="grp-fill" x="870" y="190" width="120" height="380" rx="10"/>
+  <text x="882" y="212" class="t-b">external</text>
+  <rect class="box" x="880" y="226" width="100" height="58" rx="6"/><text x="930" y="250" text-anchor="middle">GitHub</text><text x="930" y="268" text-anchor="middle" class="t-xs">git · gh</text>
+  <rect class="box" x="880" y="300" width="100" height="58" rx="6"/><text x="930" y="324" text-anchor="middle">trackers</text><text x="930" y="342" text-anchor="middle" class="t-xs">MCP</text>
+  <rect class="box" x="880" y="374" width="100" height="58" rx="6"/><text x="930" y="398" text-anchor="middle">Slack</text><text x="930" y="416" text-anchor="middle" class="t-xs">MCP</text>
+  <rect class="box" x="880" y="448" width="100" height="58" rx="6"/><text x="930" y="472" text-anchor="middle">notes</text><text x="930" y="490" text-anchor="middle" class="t-xs">Obsidian MCP</text>
+  <path class="e" d="M105,70 V118" marker-end="url(#ar)"/><text class="lbl" x="113" y="98">view · click</text>
+  <path class="e-acc" d="M190,45 H228" marker-end="url(#ar-acc)"/><text class="lbl" x="209" y="38" text-anchor="middle">chat</text>
+  <path class="e" d="M610,100 H582" marker-end="url(#ar)"/>
+  <path class="e" d="M405,140 V188" marker-end="url(#ar)"/><text class="lbl" x="413" y="168">tool calls · session events</text>
+  <path class="e" d="M580,290 H608" marker-end="url(#ar)"/><text class="lbl" x="594" y="282" text-anchor="middle">run</text>
+  <path class="e" d="M725,390 V418" marker-end="url(#ar)"/>
+  <path class="e" d="M725,500 V548" marker-end="url(#ar)"/><text class="lbl" x="733" y="530">event append</text>
+  <path class="e" d="M630,390 V548" marker-end="url(#ar)"/><text class="lbl" x="622" y="530" text-anchor="end">append (flock)</text>
+  <path class="e-dash" d="M228,640 H105 V452" marker-end="url(#ar-mut)"/><text class="lbl" x="160" y="632" text-anchor="middle">board.py json · 30 s</text>
+  <path class="e-acc" d="M228,350 H180" marker-end="url(#ar-acc)" marker-start="url(#ar-acc)"/><text class="lbl" x="204" y="340" text-anchor="middle">approvals</text>
+  <path class="e" d="M840,460 H860 V255 H878" marker-end="url(#ar)" marker-start="url(#ar)"/><text class="lbl" x="852" y="520" text-anchor="middle">gh poll</text>
+  <path class="e" d="M580,60 H595 V170 H855 V329 H878" marker-end="url(#ar)"/>
+  <path class="e" d="M855,403 H878" marker-end="url(#ar)"/><path class="e" d="M855,477 H878" marker-end="url(#ar)"/>
+  <path class="e" d="M855,329 V477"/>
+  <text class="lbl" x="760" y="164" text-anchor="middle">dispatcher · MCP writes</text>
+</svg>

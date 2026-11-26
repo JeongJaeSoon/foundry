@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" role="img" aria-label="permission approval tiers and denial triage">
+<style>
+svg { --fg: #1f1e1c; --muted: #66625b; --card: #ffffff; --card2: #f1efe9; --line: #d6d1c6;
+  --accent: #b95a37; --accent-soft: #f6e4db; --red: #b83227; --red-soft: #f8e1de; --green: #2a7a4b; --green-soft: #def0e4;
+  --amber: #9a6a12; --amber-soft: #f6ecd2; --blue: #2b62a6; --blue-soft: #dfe9f6;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) { svg { --fg: #ebe7df; --muted: #a29d93; --card: #23221f; --card2: #2b2a26; --line: #3f3c36;
+  --accent: #e3906c; --accent-soft: #3b2a21; --red: #f07a6b; --red-soft: #3d2320; --green: #67c48d; --green-soft: #1f3327;
+  --amber: #e2b45a; --amber-soft: #382f1c; --blue: #79aee9; --blue-soft: #1e2a3a; } }
+.bg { fill: var(--card); }
+text { font-family: var(--sans); fill: var(--fg); font-size: 13px; }
+.t-m { font-family: var(--mono); font-size: 12px; } .t-s { font-size: 11.5px; fill: var(--muted); }
+.t-xs { font-size: 10.5px; fill: var(--muted); } .t-b { font-weight: 700; }
+.lbl { font-size: 11px; fill: var(--muted); paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.lbl.red { fill: var(--red); }
+.box { fill: var(--card); stroke: var(--line); stroke-width: 1.3; } .box2 { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.grp { fill: none; stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 5 4; } .grp-fill { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.k-acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; } .k-blue { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.3; }
+.k-green { fill: var(--green-soft); stroke: var(--green); stroke-width: 1.3; } .k-amber { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.3; }
+.k-red { fill: var(--red-soft); stroke: var(--red); stroke-width: 1.3; }
+.e { fill: none; stroke: var(--fg); stroke-width: 1.4; opacity: .75; } .e-acc { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.e-dash { fill: none; stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 5 4; }
+.e-red { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.life { stroke: var(--line); stroke-width: 1.3; stroke-dasharray: 4 4; }
+.mk { fill: var(--fg); opacity: .8; } .mk-acc { fill: var(--accent); } .mk-red { fill: var(--red); } .mk-mut { fill: var(--muted); }
+</style>
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk"/></marker>
+  <marker id="ar-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-acc"/></marker>
+  <marker id="ar-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+  <marker id="ar-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-mut"/></marker>
+</defs>
+<rect class="bg" width="1000" height="700" rx="10"/>
+  <rect class="k-blue" x="40" y="16" width="270" height="50" rx="8"/>
+  <text x="175" y="38" text-anchor="middle" class="t-b">tool call, unattended session</text><text x="175" y="56" text-anchor="middle" class="t-s">--permission-mode auto</text>
+  <path class="e" d="M175,66 V88" marker-end="url(#ar)"/>
+  <polygon class="k-red" points="55,130 175,90 295,130 175,170"/>
+  <text x="175" y="128" text-anchor="middle" class="t-b">auto mode classifier</text><text x="175" y="145" text-anchor="middle" class="t-xs">decides first</text>
+  <path class="e-red" d="M295,130 H548" marker-end="url(#ar-red)"/><text class="lbl red" x="310" y="122">deny</text>
+  <rect class="k-red" x="550" y="106" width="200" height="48" rx="8"/><text x="650" y="128" text-anchor="middle" class="t-b">final deny</text><text x="650" y="145" text-anchor="middle" class="t-xs">no tier overturns it</text>
+  <path class="e" d="M175,170 V196" marker-end="url(#ar)"/><text class="lbl" x="183" y="188">hits an ask rule</text>
+  <rect class="box" x="40" y="198" width="270" height="50" rx="8"/>
+  <text x="175" y="220" text-anchor="middle" class="t-b">PermissionRequest hook</text><text x="175" y="238" text-anchor="middle" class="t-xs">hook.py → approve.py · answers within 600 s</text>
+  <path class="e" d="M175,248 V270" marker-end="url(#ar)"/>
+  <rect class="box" x="40" y="272" width="270" height="50" rx="8"/>
+  <text x="175" y="294" text-anchor="middle" class="t-b">tier 0 · rules</text><text x="175" y="312" text-anchor="middle" class="t-xs">config.approval_rules → RULES</text>
+  <path class="e" d="M310,297 H548" marker-end="url(#ar)"/><text class="lbl" x="320" y="289">read-only · edits inside the worktree</text>
+  <rect class="k-green" x="550" y="273" width="200" height="48" rx="8"/><text x="650" y="302" text-anchor="middle">allow / deny</text>
+  <path class="e-acc" d="M310,316 H420 V446 H548" marker-end="url(#ar-acc)"/><text class="lbl" x="428" y="418">owner-only list</text>
+  <path class="e" d="M175,322 V346" marker-end="url(#ar)"/><text class="lbl" x="183" y="340">unresolved</text>
+  <rect class="box" x="40" y="348" width="270" height="50" rx="8"/>
+  <text x="175" y="370" text-anchor="middle" class="t-b">tier 1 · approval_ledger</text><text x="175" y="388" text-anchor="middle" class="t-xs">the same request answered before</text>
+  <path class="e" d="M310,373 H400" /><path class="e" d="M400,373 H548" marker-end="url(#ar)" transform="translate(0,0)"/>
+  <rect class="k-green" x="550" y="349" width="200" height="48" rx="8"/><text x="650" y="378" text-anchor="middle">same answer</text>
+  <path class="e" d="M175,398 V422" marker-end="url(#ar)"/><text class="lbl" x="183" y="416">none</text>
+  <rect class="box" x="40" y="424" width="270" height="56" rx="8"/>
+  <text x="175" y="447" text-anchor="middle" class="t-b">tier 2 · foreman (+advisor)</text><text x="175" y="466" text-anchor="middle" class="t-xs">allow / deny (foundry approve)</text>
+  <path class="e-acc" d="M310,468 H548" marker-end="url(#ar-acc)"/><text class="lbl" x="480" y="478" text-anchor="middle">ambiguous</text>
+  <rect class="k-acc" x="550" y="424" width="200" height="56" rx="8"/>
+  <text x="650" y="447" text-anchor="middle" class="t-b">tier 3 · owner</text><text x="650" y="466" text-anchor="middle" class="t-xs">toast + buttons · ! foundry approve</text>
+  <path class="e" d="M175,480 V520" marker-end="url(#ar)"/><text class="lbl" x="183" y="506">timeout</text>
+  <path class="e-dash" d="M650,480 V520 H312" marker-end="url(#ar-mut)"/>
+  <rect class="k-amber" x="40" y="522" width="270" height="48" rx="8"/><text x="175" y="551" text-anchor="middle">deny + queued on the board</text>
+  <rect class="grp-fill" x="780" y="100" width="210" height="300" rx="10"/>
+  <text x="794" y="122" class="t-b">denial triage: 3 paths</text><text x="794" y="140" class="t-xs">(triage.py)</text>
+  <path class="e-red" d="M750,130 H778" marker-end="url(#ar-red)"/>
+  <rect class="k-green" x="792" y="152" width="186" height="66" rx="6"/>
+  <text x="800" y="172" class="t-s">① a safer alternative</text><text x="800" y="190" class="t-xs">→ foreman or lead approves</text><text x="800" y="206" class="t-xs">   (e.g. a narrower command)</text>
+  <rect class="k-green" x="792" y="228" width="186" height="66" rx="6"/>
+  <text x="800" y="248" class="t-s">② one retry with evidence</text><text x="800" y="266" class="t-xs">→ foreman or lead decides</text>
+  <rect class="k-acc" x="792" y="304" width="186" height="80" rx="6"/>
+  <text x="800" y="324" class="t-s">③ same goal, other form</text><text x="800" y="342" class="t-xs">→ owner decision card</text><text x="800" y="358" class="t-xs">  + autoMode rule draft</text><text x="800" y="374" class="t-xs">agents never turn deny into allow</text>
+  <text x="40" y="610" class="t-xs">Owner-only: production · secrets and logins · settings and permissions · payments · external publishing · merges in other orgs · MCP writes outside the allowlist.</text>
+  <text x="40" y="630" class="t-xs">Foreman and advisor answers go into the approval ledger, so the next identical request ends at tier 1.</text>
+  <text x="40" y="650" class="t-xs">A guard that reacted to wording only: proceed once with a permitted tool; still blocked → decision card; fix the pattern separately.</text>
+</svg>

@@ -1,11 +1,13 @@
 {
-  "name": "local-foundry",
-  "owner": {"name": "local"},
+  "name": "foundry",
+  "owner": {
+    "name": "local"
+  },
   "plugins": [
     {
       "name": "foundry",
-      "source": "./foundry",
-      "version": "0.1.107",
+      "source": "./",
+      "version": "0.1.114",
       "description": "Local agent foundry: foreman, line-leads, shop-bosses, hands, with hook-enforced chain and file state."
     }
   ]

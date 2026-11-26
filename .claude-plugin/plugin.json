@@ -1,0 +1,7 @@
+{
+  "name": "foundry",
+  "version": "0.1.114",
+  "description": "Foreman -> line-lead/shop-boss -> hand foundry with hook-enforced chain, file state, watcher, dedup ledgers and a status board.",
+  "types": "./types/index.d.ts",
+  "license": "MIT"
+}
