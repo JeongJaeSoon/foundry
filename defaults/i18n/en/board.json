@@ -105,5 +105,6 @@
  "section_released": "Released",
  "section_cancelled": "Cancelled",
  "archived_n": "archived {n} · foundry board --archived",
- "stale_foremen": "stale foremen: {n}"
+ "stale_foremen": "stale foremen: {n}",
+ "stale_foremen_failed": "stale foremen: {n} (stop failed)"
 }

@@ -193,5 +193,6 @@
  "stall_recovered": "auto recovery: {action} · a second stall opens a decision card",
  "stall_escalated": "second stall: escalated to a decision card",
  "pill_archived": "archived {n}",
- "pill_stale_foremen": "stale foremen: {n}"
+ "pill_stale_foremen": "stale foremen: {n}",
+ "pill_stale_foremen_failed": "stale foremen: {n} (stop failed)"
 }

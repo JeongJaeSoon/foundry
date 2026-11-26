@@ -193,5 +193,6 @@
  "stall_recovered": "자동 복구: {action} · 두 번째 막힘이면 결정 카드",
  "stall_escalated": "두 번째 막힘: 결정 카드로 올림",
  "pill_archived": "보관 {n}",
- "pill_stale_foremen": "오래된 foreman {n}개"
+ "pill_stale_foremen": "오래된 foreman {n}개",
+ "pill_stale_foremen_failed": "오래된 foreman {n}개 (중지 실패)"
 }

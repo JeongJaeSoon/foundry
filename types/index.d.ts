@@ -260,6 +260,7 @@ export type BoardModel = {
   archived_view?: boolean
   /** foreman sessions foundry started that a prune found stale and has not stopped yet */
   stale_foremen?: number
+  stale_foremen_failed?: number
   asks?: { key: string; unit: string | null; question: string; asked: string | null; headline?: string | null; outline?: OutlineLine[] }[]
   summary?: { counts: Record<ColumnKey, number>; decisions: number; approvals: number; attention: boolean; owner_wait?: number }
   inventory?: { repos: Record<string, InventoryItem[]>; reviewers: ReviewerLoad[]; warn_at?: number | null }

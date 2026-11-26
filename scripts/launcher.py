@@ -39,7 +39,8 @@ def _op_foreman_current(s, r, ts):
 
 
 def _op_foreman_prune(s, r, ts):
-    s["foreman_prune"] = {"stale": r.get("stale") or [], "stopped": r.get("stopped") or [], "by": r.get("by"), "ts": ts}
+    s["foreman_prune"] = {"stale": r.get("stale") or [], "stopped": r.get("stopped") or [], "by": r.get("by"), "ts": ts,
+                          "stop_failed": r.get("stop_failed") or {}}
 
 
 OPS = {"unit.adopted": _op_adopted, "foreman.current": _op_foreman_current, "foreman.prune": _op_foreman_prune}
@@ -49,8 +50,11 @@ FOREMAN_NAME = "foreman"  # the `claude --bg -n` name of foundry's foreman start
 
 
 def board(snap, m):
-    """stale foremen: N until a prune finds them gone (the last foreman.prune record; rendering never lists)."""
-    m["stale_foremen"] = len((snap.get("foreman_prune") or {}).get("stale") or [])
+    """stale foremen: N until a prune finds them gone (the last foreman.prune record; rendering never lists), and
+    how many of them a `claude stop` failed for (backing off)."""
+    pr = snap.get("foreman_prune") or {}
+    m["stale_foremen"] = len(pr.get("stale") or [])
+    m["stale_foremen_failed"] = sum(1 for x in pr.get("stale") or [] if x.get("session") in (pr.get("stop_failed") or {}))
 
 
 def emit(obj):
@@ -905,9 +909,13 @@ def stale_foremen(snap, entries, alive=pid_alive):
     return out
 
 
+STOP_RETRY = 24 * 3600  # seconds between `claude stop` tries for a stale foreman whose stop failed
+
+
 def prune_foremen(dry_run=False, by="foundry"):
     """Stop the idle stale foremen (stale_foremen) and journal each stop and what is left; with dry_run, list them
-    and write nothing."""
+    and write nothing. A failed `claude stop` is journaled once (stop_failed: session -> when) and not tried again
+    for STOP_RETRY; a check that changes nothing journals nothing."""
     entries = list_agents(all_=True)
     snap = cl.load()
     cands = stale_foremen(snap, entries)
@@ -919,14 +927,26 @@ def prune_foremen(dry_run=False, by="foundry"):
             for e, act in cands]
     if dry_run:
         return {"dry_run": True, "stale": rows}
-    stopped, left = [], []
+    prev = snap.get("foreman_prune") or {}
+    failed_before = prev.get("stop_failed") or {}
+    failed, stopped, left, now = {}, [], [], cl.now()
     for x in rows:
-        if x["action"] == "stop" and run([*claude_bin(), "stop", x["id"]])[0] == 0:
+        sid, at = x["session"], failed_before.get(x["session"])
+        t = cl.parse_ts(at) if isinstance(at, str) else None
+        if x["action"] == "stop" and t and (now - t).total_seconds() < STOP_RETRY:
+            failed[sid] = at  # backing off: not tried again yet
+            left.append(dict(x, action="stop-failed"))
+        elif x["action"] == "stop" and run([*claude_bin(), "stop", x["id"]])[0] == 0:
             stopped.append(x)
+        elif x["action"] == "stop":
+            failed[sid] = cl.iso(now)
+            left.append(dict(x, action="stop-failed"))
         else:
             left.append(x)
-    if rows or (snap.get("foreman_prune") or {}).get("stale"):
-        cl.append("foreman.prune", stopped=stopped, stale=left, by=by,
+    same = (not stopped and failed == failed_before
+            and [(x["session"], x["action"]) for x in left] == [(x.get("session"), x.get("action")) for x in prev.get("stale") or []])
+    if (rows or prev.get("stale")) and not same:
+        cl.append("foreman.prune", stopped=stopped, stale=left, by=by, stop_failed=failed,
                   current=(snap.get("foreman_current") or {}).get("session"))
     return {"stopped": stopped, "stale": left}
 
