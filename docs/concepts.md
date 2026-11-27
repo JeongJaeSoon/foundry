@@ -45,6 +45,8 @@ only with verify evidence recorded after its last code change.
 
 ![Unit lifecycle: statuses, transitions and board groups](img/unit-lifecycle.svg)
 
+Also in [한국어](img/unit-lifecycle.ko.svg) · [日本語](img/unit-lifecycle.ja.svg).
+
 | Status | Entered by | Left by |
 | --- | --- | --- |
 | `queue` | `foundry unit new`; a held launch (max_concurrent, PC pressure) shows here too | the lead session starting (`foundry unit launch`) |

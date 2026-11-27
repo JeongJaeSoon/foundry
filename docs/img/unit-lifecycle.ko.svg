@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="470" viewBox="0 0 980 470" role="img" aria-label="unit 라이프사이클: 상태, 전이, 보드 그룹">
+<style>
+svg { --fg: #1f1e1c; --muted: #66625b; --card: #ffffff; --card2: #f1efe9; --line: #d6d1c6;
+  --accent: #b95a37; --accent-soft: #f6e4db; --red: #b83227; --red-soft: #f8e1de; --green: #2a7a4b; --green-soft: #def0e4;
+  --amber: #9a6a12; --amber-soft: #f6ecd2; --blue: #2b62a6; --blue-soft: #dfe9f6;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; --sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) { svg { --fg: #ebe7df; --muted: #a29d93; --card: #23221f; --card2: #2b2a26; --line: #3f3c36;
+  --accent: #e3906c; --accent-soft: #3b2a21; --red: #f07a6b; --red-soft: #3d2320; --green: #67c48d; --green-soft: #1f3327;
+  --amber: #e2b45a; --amber-soft: #382f1c; --blue: #79aee9; --blue-soft: #1e2a3a; } }
+.bg { fill: var(--card); }
+text { font-family: var(--sans); fill: var(--fg); font-size: 13px; }
+.t-m { font-family: var(--mono); font-size: 12px; } .t-g { font-size: 12.5px; font-weight: 600; } .t-s { font-size: 11.5px; fill: var(--muted); }
+.t-xs { font-size: 10.5px; fill: var(--muted); } .t-b { font-weight: 700; }
+.lbl { font-size: 11px; fill: var(--muted); paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.lbl.red { fill: var(--red); }
+.box { fill: var(--card); stroke: var(--line); stroke-width: 1.3; } .box2 { fill: var(--card2); stroke: var(--line); stroke-width: 1.2; }
+.grp { fill: none; stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.k-acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; } .k-blue { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.3; }
+.k-green { fill: var(--green-soft); stroke: var(--green); stroke-width: 1.3; } .k-amber { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.3; }
+.k-red { fill: var(--red-soft); stroke: var(--red); stroke-width: 1.3; }
+.e { fill: none; stroke: var(--fg); stroke-width: 1.4; opacity: .75; } .e-acc { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.e-dash { fill: none; stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 5 4; }
+.e-red { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.life { stroke: var(--line); stroke-width: 1.3; stroke-dasharray: 4 4; }
+.mk { fill: var(--fg); opacity: .8; } .mk-acc { fill: var(--accent); } .mk-red { fill: var(--red); } .mk-mut { fill: var(--muted); }
+</style>
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk"/></marker>
+  <marker id="ar-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-acc"/></marker>
+  <marker id="ar-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+  <marker id="ar-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-mut"/></marker>
+</defs>
+<rect class="bg" width="980" height="470" rx="10"/>
+  <text x="30" y="28" class="t-b">unit 상태 (저널)</text>
+  <rect x="30" y="60" width="150" height="50" rx="8" class="box"/><text x="105" y="82" text-anchor="middle" class="t-m">queue</text><text x="105" y="99" text-anchor="middle" class="t-s">새로 들어옴, 또는 보류</text>
+  <rect x="260" y="60" width="160" height="50" rx="8" class="k-blue"/><text x="340" y="82" text-anchor="middle" class="t-m">in_progress</text><text x="340" y="99" text-anchor="middle" class="t-s">lead 세션이 작업 중</text>
+  <rect x="520" y="20" width="170" height="50" rx="8" class="k-amber"/><text x="605" y="42" text-anchor="middle" class="t-m">waiting_others</text><text x="605" y="59" text-anchor="middle" class="t-s">기록된 대기가 있음</text>
+  <rect x="520" y="110" width="170" height="50" rx="8" class="k-amber"/><text x="605" y="132" text-anchor="middle" class="t-m">waiting_owner</text><text x="605" y="149" text-anchor="middle" class="t-s">오너 질문이 열려 있음</text>
+  <rect x="260" y="170" width="160" height="50" rx="8" class="box2"/><text x="340" y="192" text-anchor="middle" class="t-m">blocked · parked</text><text x="340" y="209" text-anchor="middle" class="t-s">lead 가 설정</text>
+  <rect x="790" y="60" width="160" height="50" rx="8" class="k-green"/><text x="870" y="82" text-anchor="middle" class="t-m">done</text><text x="870" y="99" text-anchor="middle" class="t-s">verify 게이트 (lead)</text>
+  <rect x="790" y="170" width="160" height="50" rx="8" class="k-red"/><text x="870" y="192" text-anchor="middle" class="t-m">cancelled</text><text x="870" y="209" text-anchor="middle" class="t-s">오너 또는 foreman</text>
+  <path d="M180,85 L258,85" class="e" marker-end="url(#ar)"/><text x="219" y="77" text-anchor="middle" class="lbl">launch</text>
+  <path d="M420,72 C 460,50 480,45 518,45" class="e" marker-end="url(#ar)"/><text x="462" y="40" text-anchor="middle" class="lbl">대기 추가</text>
+  <path d="M520,58 C 480,75 450,80 422,80" class="e-dash" marker-end="url(#ar-mut)"/><text x="470" y="78" text-anchor="middle" class="lbl">대기 해소</text>
+  <path d="M420,95 C 460,120 480,135 518,135" class="e" marker-end="url(#ar)"/><text x="470" y="150" text-anchor="middle" class="lbl">오너에게 질문</text>
+  <path d="M605,110 L605,72" class="e-dash" marker-end="url(#ar-mut)"/><text x="612" y="95" text-anchor="start" class="lbl">답변, 대기가 남음</text>
+  <path d="M520,125 C 480,115 450,105 422,100" class="e-dash" marker-end="url(#ar-mut)"/>
+  <path d="M320,110 L320,168" class="e" marker-end="url(#ar)"/><text x="313" y="145" text-anchor="end" class="lbl">unit set</text>
+  <path d="M360,170 L360,112" class="e-dash" marker-end="url(#ar-mut)"/><text x="367" y="163" text-anchor="start" class="lbl">unit set (ready 뒤)</text>
+  <path d="M380,60 C 380,0 870,0 870,58" class="e-acc" marker-end="url(#ar-acc)"/><text x="698" y="44" text-anchor="start" class="lbl">verify 후 done (lead)</text>
+  <path d="M105,110 C 105,250 600,250 788,200" class="e-red" marker-end="url(#ar-red)"/><text x="520" y="238" text-anchor="middle" class="lbl red">취소 (열린 어떤 상태에서든)</text>
+  <line x1="30" y1="268" x2="950" y2="268" class="life"/>
+  <text x="30" y="292" class="t-b">닫힌 unit 의 보드 그룹 (board.unit_state, PR 상태로 결정)</text>
+  <rect x="30" y="310" width="170" height="50" rx="8" class="k-amber"/><text x="115" y="332" text-anchor="middle" class="t-g">팀 대기</text><text x="115" y="349" text-anchor="middle" class="t-s">아직 열린 PR 이 있음</text>
+  <rect x="220" y="310" width="190" height="50" rx="8" class="k-amber"/><text x="315" y="332" text-anchor="middle" class="t-g">머지됨 · 릴리스 대기</text><text x="315" y="349" text-anchor="middle" class="t-s">아직 어느 태그에도 없음</text>
+  <rect x="430" y="310" width="170" height="50" rx="8" class="k-green"/><text x="515" y="332" text-anchor="middle" class="t-g">릴리스 완료</text><text x="515" y="349" text-anchor="middle" class="t-s">릴리스 unit, 또는 태그됨</text>
+  <rect x="620" y="310" width="150" height="50" rx="8" class="k-green"/><text x="695" y="332" text-anchor="middle" class="t-g">완료</text><text x="695" y="349" text-anchor="middle" class="t-s">기다리는 것 없음</text>
+  <rect x="790" y="310" width="160" height="50" rx="8" class="k-red"/><text x="870" y="339" text-anchor="middle" class="t-g">취소</text>
+  <path d="M800,112 C 770,190 720,240 700,306" class="e-dash" marker-end="url(#ar-mut)"/><text x="610" y="256" text-anchor="middle" class="lbl">done: PR 상태로 한 그룹에</text>
+  <path d="M870,220 L870,308" class="e-dash" marker-end="url(#ar-mut)"/>
+  <rect x="420" y="385" width="530" height="62" rx="8" class="grp"/>
+  <text x="685" y="410" text-anchor="middle" class="t-g">보관 보기 (foundry board --archived)</text>
+  <text x="685" y="430" text-anchor="middle" class="t-s">board archive, 또는 닫힌 지 board.archive_days 경과 · 아무것도 지우지 않음</text>
+  <path d="M515,360 L515,383" class="e-dash" marker-end="url(#ar-mut)"/>
+  <path d="M695,360 L695,383" class="e-dash" marker-end="url(#ar-mut)"/>
+  <path d="M870,360 L870,383" class="e-dash" marker-end="url(#ar-mut)"/>
+  <text x="30" y="395" class="t-s">실선: lead 나 foundry 가 기록하는 전이</text>
+  <text x="30" y="413" class="t-s">점선: 저절로 따라오는 전이</text>
+  <text x="30" y="431" class="t-s">팀 대기와 릴리스 대기는 보관되지 않음</text>
+</svg>

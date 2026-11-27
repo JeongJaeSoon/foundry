@@ -45,9 +45,9 @@ text { font-family: var(--sans); fill: var(--fg); font-size: 13px; }
   <path d="M420,95 C 460,120 480,135 518,135" class="e" marker-end="url(#ar)"/><text x="470" y="150" text-anchor="middle" class="lbl">decision ask</text>
   <path d="M605,110 L605,72" class="e-dash" marker-end="url(#ar-mut)"/><text x="612" y="95" text-anchor="start" class="lbl">answered, waits left</text>
   <path d="M520,125 C 480,115 450,105 422,100" class="e-dash" marker-end="url(#ar-mut)"/>
-  <path d="M320,110 L320,168" class="e" marker-end="url(#ar)"/><text x="327" y="145" text-anchor="start" class="lbl">unit set</text>
+  <path d="M320,110 L320,168" class="e" marker-end="url(#ar)"/><text x="313" y="145" text-anchor="end" class="lbl">unit set</text>
   <path d="M360,170 L360,112" class="e-dash" marker-end="url(#ar-mut)"/><text x="367" y="163" text-anchor="start" class="lbl">unit set (after ready)</text>
-  <path d="M380,60 C 380,0 870,0 870,58" class="e-acc" marker-end="url(#ar-acc)"/><text x="740" y="16" text-anchor="middle" class="lbl">verify, then done (lead)</text>
+  <path d="M380,60 C 380,0 870,0 870,58" class="e-acc" marker-end="url(#ar-acc)"/><text x="698" y="44" text-anchor="start" class="lbl">verify, then done (lead)</text>
   <path d="M105,110 C 105,250 600,250 788,200" class="e-red" marker-end="url(#ar-red)"/><text x="520" y="238" text-anchor="middle" class="lbl red">cancel (any open status)</text>
   <line x1="30" y1="268" x2="950" y2="268" class="life"/>
   <text x="30" y="292" class="t-b">Board group of a closed unit (board.unit_state, from its PRs)</text>
@@ -56,7 +56,7 @@ text { font-family: var(--sans); fill: var(--fg); font-size: 13px; }
   <rect x="430" y="310" width="170" height="50" rx="8" class="k-green"/><text x="515" y="332" text-anchor="middle" class="t-m">released</text><text x="515" y="349" text-anchor="middle" class="t-s">release unit, or tagged</text>
   <rect x="620" y="310" width="150" height="50" rx="8" class="k-green"/><text x="695" y="332" text-anchor="middle" class="t-m">done</text><text x="695" y="349" text-anchor="middle" class="t-s">nothing waits</text>
   <rect x="790" y="310" width="160" height="50" rx="8" class="k-red"/><text x="870" y="339" text-anchor="middle" class="t-m">cancelled</text>
-  <path d="M800,112 C 770,190 720,240 700,306" class="e-dash" marker-end="url(#ar-mut)"/><text x="640" y="262" text-anchor="middle" class="lbl">done: one group by its PRs</text>
+  <path d="M800,112 C 770,190 720,240 700,306" class="e-dash" marker-end="url(#ar-mut)"/><text x="610" y="256" text-anchor="middle" class="lbl">done: one group by its PRs</text>
   <path d="M870,220 L870,308" class="e-dash" marker-end="url(#ar-mut)"/>
   <rect x="420" y="385" width="530" height="62" rx="8" class="grp"/>
   <text x="685" y="410" text-anchor="middle" class="t-m">archive view (foundry board --archived)</text>
