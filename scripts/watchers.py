@@ -972,12 +972,26 @@ def cycle_sessions(now, p):
     try:  # sessions ending leave worktrees and containers: announce new cleanup candidates here
         import housekeep
         import sweep
+        if not scan_due(time.monotonic(), changes):
+            return [], lines
+        _LAST_SCAN[0] = time.monotonic()
         ev = sweep.announce(housekeep.scan())
         if ev:
             lines.append(f"event _foreman housekeeping: {ev['summary']}")
     except Exception as ex:
         cl.append_log("watch.log", {"stream": "sessions", "error": f"housekeeping: {ex}"})
     return [], lines
+
+
+HK_SCAN_EVERY = 900
+_LAST_SCAN = [float("-inf")]
+
+
+def scan_due(now, changes):
+    """The housekeeping scan runs git, gh and lsof in every worktree, and endpoint security agents inspect each of
+    those process starts and file reads: run it when a session changed state (the moment worktrees free up) and
+    otherwise at most every HK_SCAN_EVERY seconds, not on every sessions cycle."""
+    return bool(changes) or now - _LAST_SCAN[0] >= HK_SCAN_EVERY
 
 
 def stuck_lines():

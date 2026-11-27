@@ -3,6 +3,9 @@
 import os
 import sys
 
+if os.environ.get("FAKE_LSOF_LOG"):
+    with open(os.environ["FAKE_LSOF_LOG"], "a") as f:
+        f.write("call\n")
 if os.environ.get("FAKE_LSOF_FAIL"):
     sys.exit(2)
 for i, d in enumerate(p for p in os.environ.get("FAKE_LSOF_CWDS", "").split(":") if p):

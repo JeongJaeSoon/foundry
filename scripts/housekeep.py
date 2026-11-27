@@ -93,22 +93,38 @@ def linked_worktrees(top):
     return out
 
 
-def users(path):
-    """The owner's processes whose cwd is path or inside it, as [{pid, cmd}]; None when lsof cannot tell."""
+def cwd_table():
+    """Every one of the owner's processes with its cwd, as [(pid, cmd, realpath cwd)]; None when lsof cannot tell.
+    One system-wide lsof: endpoint security agents inspect each process start, so a scan reads it once."""
     rc, outp, _ = run([*LSOF, "-a", "-u", str(os.getuid()), "-d", "cwd", "-Fpcn"])
     if rc != 0 and not (rc == 1 and not outp.strip()):
         return None
-    root = os.path.realpath(path)
-    out, proc = [], {}
+    rows, pid, cmd = [], "", ""
     for line in outp.splitlines():
         if line.startswith("p"):
-            proc = {"pid": line[1:], "cmd": ""}
+            pid, cmd = line[1:], ""
         elif line.startswith("c"):
-            proc["cmd"] = line[1:]
-        elif line.startswith("n"):
-            cwd = os.path.realpath(line[1:])
-            if (cwd == root or cwd.startswith(root + os.sep)) and proc and proc not in out:
-                out.append(dict(proc))
+            cmd = line[1:]
+        elif line.startswith("n") and pid:
+            rows.append((pid, cmd, os.path.realpath(line[1:])))
+    return rows
+
+
+_SCAN_CWDS = []  # the table scan() read, while it runs; empty means read lsof now
+
+
+def users(path, fresh=False):
+    """The owner's processes whose cwd is path or inside it, as [{pid, cmd}]; None when lsof cannot tell.
+    Inside scan() the table it read is reused; fresh=True (a removal) always reads lsof again."""
+    table = _SCAN_CWDS[-1] if _SCAN_CWDS and not fresh else cwd_table()
+    if table is None:
+        return None
+    root = os.path.realpath(path)
+    out = []
+    for pid, cmd, cwd in table:
+        proc = {"pid": pid, "cmd": cmd}
+        if (cwd == root or cwd.startswith(root + os.sep)) and proc not in out:
+            out.append(proc)
     return out
 
 
@@ -126,7 +142,7 @@ def remove_worktree(path, by, reason):
     """The one way foundry removes a git worktree (the executor, a finished unit's reclaim, an owner-approved
     proposal): never while a process uses it or anything under it as its cwd (that session would lose its
     directory), never with --force. A refusal is journaled as hk.refused with the processes. Returns the result."""
-    procs = users(path)
+    procs = users(path, fresh=True)
     if procs is None or procs:
         why = "lsof could not tell whether a process uses it" if procs is None else f"in use by {users_text(procs)}"
         cl.append("hk.refused", target=path, by=by, reason=reason, why=why, procs=procs or [])
@@ -314,6 +330,14 @@ def scripted_verdicts(snap=None):
 
 
 def scan():
+    _SCAN_CWDS.append(cwd_table())
+    try:
+        return _scan()
+    finally:
+        _SCAN_CWDS.pop()
+
+
+def _scan():
     cfg = cl.load_config()
     roots = cfg["repo_roots"] + [r for r in os.environ.get("FOUNDRY_REPO_ROOTS", "").split(":") if r]
     found = {}
