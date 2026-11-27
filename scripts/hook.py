@@ -14,6 +14,13 @@ import roles  # noqa: E402
 import slackguard as sg  # noqa: E402
 
 JUDGE_FORBIDDEN = set("\n\r;&|<>$`()")
+JUDGE_SAFE = str.maketrans({"\n": " ", "\r": " ", ";": ",", "&": "+", "|": "/", "<": "", ">": "", "$": "",
+                            "`": "'", "(": "", ")": ""})
+
+
+def judge_safe(text):
+    """`text` without JUDGE_FORBIDDEN characters, so the judge can copy it into `--reason` as is."""
+    return None if text is None else str(text).translate(JUDGE_SAFE)
 JUDGE_VERDICTS = ("safe", "propose", "skip")
 UNIT_RE = re.compile(r"^\s*UNIT:\s*([\w.-]+)\s*$", re.M)
 TODO_TOOLS = ("TaskCreate", "TaskUpdate", "TodoWrite")
@@ -230,6 +237,12 @@ LIFECYCLE_RE = re.compile(r"foundry(?:\.py)?['\"]?\s+unit\s+(?:launch|resume|sto
 def bash_decision(caller, inp, cmd, snap):
     """None when allowed, else the deny reason."""
     if inp.get("agent_type") == "foundry:sweeper-judge" and not judge_command_ok(cmd):
+        bad = sorted({c for c in cmd if c in JUDGE_FORBIDDEN}, key="\n\r;&|<>$`()".index)
+        if bad:
+            shown = " ".join("newline" if c in "\n\r" else f"`{c}`" for c in dict.fromkeys(
+                "\n" if c == "\r" else c for c in bad))
+            return (f"The command contains {shown}: write it (the reason too) without ; & | < > $ ` ( ) or newlines. "
+                    "The sweeper judge only runs `housekeep.py scan` and `housekeep.py plan`.")
         return "The sweeper judge only runs `housekeep.py scan` and `housekeep.py plan`; the executor acts."
     raw = inp.get("agent_type") != "foundry:sweeper-judge" and raw_plugin_script(cmd, inp.get("cwd"))
     if raw:

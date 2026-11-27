@@ -41,10 +41,13 @@ def _op_foreman_current(s, r, ts):
 def _op_foreman_prune(s, r, ts):
     s["foreman_prune"] = {"stale": r.get("stale") or [], "stopped": r.get("stopped") or [], "by": r.get("by"), "ts": ts,
                           "stop_failed": r.get("stop_failed") or {}}
+    for x in r.get("stopped") or []:  # claude said it no longer exists: a listing that still shows it is not retried
+        if x.get("note") == GONE_NOTE:
+            s.setdefault("foreman_gone", {})[x["session"]] = ts
 
 
 OPS = {"unit.adopted": _op_adopted, "foreman.current": _op_foreman_current, "foreman.prune": _op_foreman_prune}
-STATE = {"foreman_current": None, "foreman_sessions": {}, "foreman_prune": None}
+STATE = {"foreman_current": None, "foreman_sessions": {}, "foreman_prune": None, "foreman_gone": {}}
 UNIT_FIELDS = {"adopted": None}
 FOREMAN_NAME = "foreman"  # the `claude --bg -n` name of foundry's foreman start line (firstrun uses this one)
 
@@ -858,10 +861,18 @@ def stop_session(name, reason=None):
     if not sess or not sess.get("bg_id"):
         return {"error": f"no session {name} with a background id"}
     rc, out, err = run([*claude_bin(), "stop", sess["bg_id"]])
-    if rc:
+    if rc and not already_gone(out, err):
         return {"error": f"claude stop {sess['bg_id']} failed (exit {rc}): {(err or out).strip()}"}
-    cl.append("session.state", name=name, state="stopped", note=reason)
-    return {"stopped": name, "bg_id": sess["bg_id"]}
+    cl.append("session.state", name=name, state="stopped", note=GONE_NOTE if rc else reason)
+    return {"stopped": name, "bg_id": sess["bg_id"], **({"note": GONE_NOTE} if rc else {})}
+
+
+GONE_NOTE = "claude: no session matching: already gone"
+
+
+def already_gone(out, err):
+    """True when a failed `claude stop` said the session does not exist: it is stopped, not a stop to retry."""
+    return "no session matching" in f"{out or ''} {err or ''}".lower()
 
 
 def cmd_stop(a):
@@ -899,7 +910,8 @@ def stale_foremen(snap, entries, alive=pid_alive):
     out = []
     for e in entries:
         sid = e.get("sessionId")
-        if e.get("name") != FOREMAN_NAME or not sid or sid == cur or sid not in ours:
+        if (e.get("name") != FOREMAN_NAME or not sid or sid == cur or sid not in ours
+                or sid in (snap.get("foreman_gone") or {})):
             continue
         state = classify(e)[0]
         if state in ("stopped", "done"):
@@ -936,11 +948,13 @@ def prune_foremen(dry_run=False, by="foundry"):
         if x["action"] == "stop" and t and (now - t).total_seconds() < STOP_RETRY:
             failed[sid] = at  # backing off: not tried again yet
             left.append(dict(x, action="stop-failed"))
-        elif x["action"] == "stop" and run([*claude_bin(), "stop", x["id"]])[0] == 0:
-            stopped.append(x)
         elif x["action"] == "stop":
-            failed[sid] = cl.iso(now)
-            left.append(dict(x, action="stop-failed"))
+            rc, out, err = run([*claude_bin(), "stop", x["id"]])
+            if rc == 0 or already_gone(out, err):
+                stopped.append(dict(x, note=GONE_NOTE) if rc else x)
+            else:
+                failed[sid] = cl.iso(now)
+                left.append(dict(x, action="stop-failed"))
         else:
             left.append(x)
     same = (not stopped and failed == failed_before

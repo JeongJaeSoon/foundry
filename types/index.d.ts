@@ -269,6 +269,7 @@ export type BoardModel = {
   foreman?: { alive: boolean; ts: string | null } | null
   foreman_down?: boolean
   foreman_restart?: boolean
+  foreman_stop?: string | null
   handover?: Handover | null
   night?: boolean
   glyphs?: 'nerd' | 'emoji'

@@ -119,7 +119,7 @@ def in_use(path):
 
 
 def users_text(procs):
-    return ", ".join(f"{p['cmd'] or '?'} ({p['pid']})" for p in procs[:3]) + (" …" if len(procs) > 3 else "")
+    return ", ".join(f"{p['cmd'] or '?'} pid {p['pid']}" for p in procs[:3]) + (" …" if len(procs) > 3 else "")
 
 
 def remove_worktree(path, by, reason):
@@ -354,8 +354,12 @@ def scan():
             cands.append({"cls": "subagent", "target": a["agent_id"], "safe": True,
                           "facts": {"type": a["type"], "unit": a.get("unit")}})
     cands += session_candidates(snap, cfg)
+    import hook  # the judge copies these into `plan --reason`: none may hold a character its hook refuses
     for c in cands:
         c["hid"] = f"{c['cls']}:{c['target']}"
+        for k in ("reason", "note"):
+            if c.get(k):
+                c[k] = hook.judge_safe(c[k])
     return cands
 
 
@@ -415,9 +419,12 @@ def stop_session(name, reason):
     bg = (cl.load()["sessions"].get(name) or {}).get("bg_id")
     if not bg:
         return 1, "no bg_id recorded"
-    rc, _, err = run([*CLAUDE, "stop", bg])
-    if rc == 0:
-        cl.append("session.state", name=name, state="stopped", note=reason)
+    rc, out, err = run([*CLAUDE, "stop", bg])
+    gone = rc and "no session matching" in f"{out} {err}".lower()  # launcher.already_gone, without launcher
+    if rc == 0 or gone:
+        cl.append("session.state", name=name, state="stopped",
+                  note="claude: no session matching: already gone" if gone else reason)
+        return 0, ""
     return rc, err
 
 

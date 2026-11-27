@@ -19,7 +19,7 @@ class CwdGuard(tf.Housekeeping):
         cands = {c["branch"]: c for c in self.script("housekeep.py", "scan") if c["cls"] == "worktree"}
         c = cands["merged-clean"]
         self.assertEqual((c["safe"], c["suggest"]), (False, "skip"))
-        self.assertEqual(c["note"], "in use by claude (1000)")
+        self.assertEqual(c["note"], "in use by claude pid 1000")
 
     def test_the_executor_refuses_when_a_process_moved_in_after_the_verdict(self):
         cands = {c["branch"]: c for c in self.script("housekeep.py", "scan") if c["cls"] == "worktree"}
@@ -34,7 +34,7 @@ class CwdGuard(tf.Housekeeping):
         self.env["FAKE_LSOF_CWDS"] = target
         rc, out = self.foundry("sweep", "remove-worktree", target, "--by", "foreman", "--reason", "owner: 지워",
                                ok=(1,))
-        self.assertEqual(out["result"], "refused: in use by claude (1000)")
+        self.assertEqual(out["result"], "refused: in use by claude pid 1000")
         self.assertTrue(os.path.isdir(target))
         [r] = [r for r in self.journal() if r["op"] == "hk.refused"]
         self.assertEqual((r["by"], r["procs"]), ("foreman", [{"pid": "1000", "cmd": "claude"}]))
@@ -57,7 +57,7 @@ class CwdGuard(tf.Housekeeping):
         self.env["FAKE_LSOF_CWDS"] = target
         self.script("housekeep.py", "plan", "--hid", f"worktree:{target}", "--verdict", "propose", "--reason", "r")
         [p] = [p for p in self.snap()["housekeeping"]["plans"] if p["target"] == target]
-        self.assertEqual(p["in_use"], "claude (1000)")
+        self.assertEqual(p["in_use"], "claude pid 1000")
 
 
 class DirectRemovalDenied(tf.Base):

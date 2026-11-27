@@ -188,7 +188,7 @@ def proof(path, pr_url=None, pr_head=None):
 
 def nowhere(p):
     """One line for the owner's proposal: the changes found nowhere else, else None."""
-    files = [f"{f['path']} ({f['summary']})" for f in p.get("files") or [] if not f.get("where")]
+    files = [f"{f['path']} {f['summary']}" for f in p.get("files") or [] if not f.get("where")]
     commits = [f"{c['sha'][:8]} {c['subject']}" for c in p.get("commits") or [] if not c.get("where")]
     if p.get("error"):
         return p["error"]

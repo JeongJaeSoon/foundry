@@ -9,9 +9,10 @@ expire after `nearmiss.expire_days`. A fixed pattern that recurs is open again.
 Waiting PRs: `pr_cycle` (the github stream) files one reminder in the PR's existing ask thread after
 `review.remind_business_days` without review, opens one owner card (close / reassign / keep waiting) after
 `review.escalate_business_days`, and asks the owner to adopt or drop an open PR no live unit owns. Dropped PRs
-leave the board with their reason.
+leave the board with their reason; a drop key `owner/repo#*` or `owner/*#*` drops every PR it matches (`is_dropped`).
 """
 
+import fnmatch
 import json
 import os
 import re
@@ -21,7 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import foundrylib as cl  # noqa: E402
 
-STATE = {"nearmiss_patterns": {}, "pr_dropped": {}}
+STATE = {"nearmiss_patterns": {}, "pr_dropped": {}, "pr_undropped": {}}
+REPO_PATTERN = re.compile(r"^[\w.-]+/(?:[\w.-]+|\*)$")  # owner/repo or owner/*: never a bare `*`
 
 # (shape, test on the denied command or the false-positive description, outcome, note). First match wins.
 SHAPES = (
@@ -130,6 +132,19 @@ def _op_pr_dropped(s, r, ts):
     s.setdefault("pr_dropped", {})[r["ref"]] = {"reason": r.get("reason"), "by": r.get("by"), "ts": ts}
 
 
+def _op_pr_undropped(s, r, ts):
+    (s.get("pr_dropped") or {}).pop(r["ref"], None)
+    s.setdefault("pr_undropped", {})[r["ref"]] = ts  # an older drop answer on a card does not drop it again
+
+
+def is_dropped(snap, ref):
+    """The pr_dropped key that hides `ref` (exact, or a `owner/repo#*` / `owner/*#*` pattern), else None."""
+    dropped = snap.get("pr_dropped") or {}
+    if ref in dropped:
+        return ref
+    return next((k for k in dropped if "*" in k and fnmatch.fnmatchcase(ref, k)), None)
+
+
 def _op_wait_repin(s, r, ts):
     u = (s.get("units") or {}).get(r.get("id")) or {}
     for w in u.get("waits") or []:
@@ -138,7 +153,7 @@ def _op_wait_repin(s, r, ts):
 
 
 OPS = {"nearmiss": _op_nearmiss, "nearmiss.resolve": _op_resolve, "nearmiss.expire": _op_expire,
-       "pr.dropped": _op_pr_dropped, "wait.repin": _op_wait_repin}
+       "pr.dropped": _op_pr_dropped, "pr.undropped": _op_pr_undropped, "wait.repin": _op_wait_repin}
 
 
 # ---------- waits that drifted from their PR ----------
@@ -366,15 +381,14 @@ def pr_cycle(p=None, now=None):
                                           "리뷰어를 바꿀까요, 계속 기다릴까요?"),
                                 options=[{"key": "close", "label": "PR 닫기"},
                                          {"key": "reassign", "label": "리뷰어 교체"},
-                                         {"key": "wait", "label": "계속 대기"}],
+                                         {"key": "wait", "label": "계속 대기"},
+                                         {"key": "drop", "label": "보드에서 제외 (내 담당 아님)"}],
                                 recommended="reassign", reason="리마인드를 이미 보냈는데 리뷰가 없다")
                 recs.append(("decide.open", rec))
                 lines.append(f"pr {ref} ({uid}): owner card {rec['id']} (close / reassign / keep waiting)")
             elif act == "adopt-or-drop":
                 card = _card(snap, f"pr-orphan:{ref}")
-                if card and card.get("answer") == "drop":
-                    recs.append(("pr.dropped", {"ref": ref, "reason": f"owner answered {card['id']}: drop", "by": "owner"}))
-                elif not card and r.get("known_open"):
+                if not card and r.get("known_open"):
                     rec = _card_rec(snap.get("cards") or {}, opened, key=f"pr-orphan:{ref}", unit=None,
                                     repo=r.get("repo"),
                                     question=(f"{ref} 는 열려 있지만 맡은 unit 이 없습니다 (unit {uid or '-'} "
@@ -384,6 +398,9 @@ def pr_cycle(p=None, now=None):
                                     recommended="drop" if uid else "adopt", reason="주인 없는 대기는 움직이지 않는다")
                     recs.append(("decide.open", rec))
                     lines.append(f"pr {ref}: no live unit: owner card {rec['id']} (adopt / drop)")
+        for ref, cid in card_drops(snap):
+            recs.append(("pr.dropped", {"ref": ref, "reason": f"owner answered {cid}: drop", "by": "owner"}))
+            lines.append(f"pr {ref}: owner answered {cid}: drop: off the board")
         for rid, ref, st in moot_merges(snap):
             recs.append(("approval.answer", {"rid": rid, "behavior": "deny", "by": "github",
                                              "reason": f"{ref} 는 이미 {'머지됨' if st == 'MERGED' else '닫힘'}: merge 요청 자동 철회"}))
@@ -402,6 +419,24 @@ def pr_cycle(p=None, now=None):
         import graph
         graph.apply_resolve()
     return lines
+
+
+def card_drops(snap):
+    """[(ref, card id)] for pr-aging / pr-orphan cards answered `drop` whose PR is not dropped yet, unless the
+    owner undropped it after that answer."""
+    import decide
+    out = []
+    for cid, c in sorted((snap.get("cards") or {}).items()):
+        key = str(c.get("key") or "")
+        pre = next((x for x in decide.KEY_PR_PREFIXES if key.startswith(x)), None)
+        if not pre or c.get("answer") != "drop":
+            continue
+        ref = key[len(pre):]
+        undone = (snap.get("pr_undropped") or {}).get(ref)
+        answered = cl.parse_ts(c.get("answered"))
+        if not is_dropped(snap, ref) and not (undone and answered and cl.parse_ts(undone) >= answered):
+            out.append((ref, cid))
+    return out
 
 
 def _merge_ref(summary):
@@ -451,9 +486,24 @@ def cmd_pr(a):
     snap = cl.load()
     if a.sub == "age":
         return _emit({"actions": actions(snap)} if a.dry_run else {"lines": pr_cycle()})
-    if a.sub == "drop":
-        cl.append("pr.dropped", ref=a.ref, reason=a.reason, by="foreman")
-        return _emit({"dropped": a.ref, "reason": a.reason})
+    if a.sub in ("drop", "undrop"):
+        if bool(a.ref) == bool(a.repo):
+            print("refused: give a PR ref or --repo, not both or neither", file=sys.stderr)
+            return 2
+        if a.repo and not REPO_PATTERN.match(a.repo):
+            print(f"refused: --repo {a.repo!r} is not owner/repo or owner/*", file=sys.stderr)
+            return 2
+        ref = f"{a.repo}#*" if a.repo else a.ref
+        if a.sub == "drop":
+            cl.append("pr.dropped", ref=ref, reason=a.reason, by="foreman")
+            return _emit({"dropped": ref, "reason": a.reason})
+        if ref not in (snap.get("pr_dropped") or {}):
+            cover = is_dropped(snap, ref)
+            print(f"refused: {ref} is not a drop key" + (f"; it is hidden by {cover}: undrop that" if cover else ""),
+                  file=sys.stderr)
+            return 2
+        cl.append("pr.undropped", ref=ref, by="foreman")
+        return _emit({"undropped": ref})
     if a.unit not in snap["units"] or snap["units"][a.unit].get("status") == "done":
         print(f"refused: {a.unit} is not a live unit", file=sys.stderr)
         return 2
@@ -470,11 +520,14 @@ def add_cli(sp):
     rs.add_argument("--ref"); rs.add_argument("--note")
     for x in (tr, rs):
         x.set_defaults(func=cmd_nearmiss)
-    s = sp.add_parser("pr", help="waiting-PR lifecycle: age (remind / owner card), adopt, drop").add_subparsers(
+    s = sp.add_parser("pr", help="waiting-PR lifecycle: age (remind / owner card), adopt, drop, undrop").add_subparsers(
         dest="sub", required=True)
     ag = s.add_parser("age"); ag.add_argument("--dry-run", action="store_true")
     ad = s.add_parser("adopt"); ad.add_argument("ref"); ad.add_argument("--unit", required=True)
-    dr = s.add_parser("drop"); dr.add_argument("ref"); dr.add_argument("--reason", required=True)
+    dr = s.add_parser("drop", help="take a PR (or with --repo every PR of owner/repo or owner/*) off the board")
+    dr.add_argument("ref", nargs="?"); dr.add_argument("--repo"); dr.add_argument("--reason", required=True)
+    ud = s.add_parser("undrop", help="put a dropped PR (or --repo pattern) back on the board")
+    ud.add_argument("ref", nargs="?"); ud.add_argument("--repo")
     for x in s.choices.values():
         x.set_defaults(func=cmd_pr)
 

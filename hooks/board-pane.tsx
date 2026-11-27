@@ -1918,7 +1918,7 @@ export const register: Register = (on, options) => {
         </Box>
         )}
         <Box flexDirection="row" gap={1} marginTop={1}>
-          {model.foreman_restart && <Text color="warning">{t('foreman_restart')}</Text>}
+          {model.foreman_restart && <Text color="warning">{t('foreman_restart')} ({model.foreman_stop ?? 'claude stop foreman'})</Text>}
           <Text dimColor>{t('updated_legend', { at: model.generated.slice(11, 19) })}</Text>
           <Button key="refresh" plain dimColor onPress={() => refresh($)}>
             {t('refresh')}

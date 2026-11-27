@@ -36,7 +36,9 @@ Lead sessions are separate processes and are not affected by the foreman's /clea
 
 A foreman started without `--agents` (before 0.1.83) keeps its agent file's generic MCP names once it is started
 fresh, and /clear does not change its start flags. To restart it with the mapped definition, at a time the owner
-picks: steps 1-3 above, then the owner runs `claude stop foreman` and `foundry foreman start` from a plain terminal
+picks: steps 1-3 above, then the owner runs `claude stop <id>` (the current foreman's short id, as the board's
+"foreman restart needed" hint prints it; not `claude stop foreman`, which is ambiguous once stale sessions share
+the name) and `foundry foreman start` from a plain terminal
 (it builds the same start line, `--agents` included, and refuses while a foreman is still running or idle), then
 `claude attach foreman` and `foundry up` as the first prompt. `foundry foreman line` prints the line for a start by hand.
 

@@ -254,6 +254,7 @@ def _finish(snap, m):
                 r["sync_text"] = i18n.t("board.sync_lag",
                                         min=r["sync_lag_min"] if r["sync_lag_min"] is not None else "?")
     m["foreman_restart"] = bool(watchers_mod().foreman_drift(snap))
+    m["foreman_stop"] = watchers_mod().foreman_stop_cmd(snap) if m["foreman_restart"] else None
     m["foreman_down"] = bool((m["foreman"] and m["foreman"].get("alive") is False)
                              or (m["monitor"] and m["monitor"].get("collecting") is False))
     views.board(snap, m)  # last: the owner-facing views read every row and card in their final shape
@@ -505,7 +506,7 @@ def band(m):
     if m["foreman_down"]:
         parts.append("foreman down")
     if m.get("foreman_restart"):
-        parts.append(i18n.t("board.foreman_restart"))
+        parts.append(f"{i18n.t('board.foreman_restart')} (`{m.get('foreman_stop') or 'claude stop foreman'}`)")
     if m.get("stale_foremen"):
         parts.append(i18n.t("board.stale_foremen_failed" if m.get("stale_foremen_failed") else "board.stale_foremen",
                             n=m["stale_foremen"]))

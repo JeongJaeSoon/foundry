@@ -385,7 +385,8 @@ def inventory(snap, t=None, p=None, live=None, rs=None):
 
     import review
     pool = review.pool_logins(p)
-    dropped = snap.get("pr_dropped") or {}
+    import aging
+    dropped = {ref for ref in prs if aging.is_dropped(snap, ref)}
     for ref, pr in prs.items():
         if ref in dropped:
             continue

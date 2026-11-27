@@ -1,7 +1,8 @@
 """A stand-in for `claude`: logs argv and cwd to FAKE_CLAUDE_LOG, answers from the JSON in FAKE_CLAUDE_DATA.
 
 Data keys: bg_id (default "bg1"), resume_id (the id a bare `--bg --resume` answers; default bg_id), bg_out
-(overrides the whole --bg stdout), bg_fail, agents (list), rm_rc, stop_rc.
+(overrides the whole --bg stdout), bg_fail, agents (list), rm_rc, stop_rc, stop_gone
+(stop answers "No session matching <id>", exit 1).
 """
 
 import json
@@ -23,6 +24,9 @@ elif args[:1] == ["rm"]:
     print("removed " + args[1])
     sys.exit(data.get("rm_rc", 0))
 elif args[:1] == ["stop"]:
+    if data.get("stop_gone"):
+        print(f"No session matching {args[1]}", file=sys.stderr)
+        sys.exit(1)
     print("stopped " + args[1])
     sys.exit(data.get("stop_rc", 0))
 elif "--bg" in args:

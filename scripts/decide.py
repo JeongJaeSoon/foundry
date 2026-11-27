@@ -21,7 +21,8 @@ STATE = {"cards": {}}
 FIELDS = ("id", "unit", "repo", "question", "context", "options", "recommended", "reason", "asked_by",
           "deadline", "default", "key", "refs")
 # What a card hinges on. Once every ref is settled the card is moot and foundry closes it (close_moot), never the
-# owner: pr:<owner/repo#n> merged or closed, approval:<rid> answered, unit:<id> done or cancelled.
+# owner: pr:<owner/repo#n> merged, closed or dropped (`foundry pr drop`), approval:<rid> answered, unit:<id> done
+# or cancelled.
 REF_RE = re.compile(r"^(pr|approval|unit):(\S+)$")
 PR_REF_RE = re.compile(r"^[\w.-]+/[\w.-]+#\d+$")
 # Cards foundry opens about one PR hinge on it by their key, refs or not (cards opened before refs existed).
@@ -111,9 +112,12 @@ def moot_reason(snap, c, live=None):
         return None
     states = {**pr_states(snap), **(live or {})}
     why = []
+    import aging
     for ref in refs:
         kind, val = ref.split(":", 1)
-        if kind == "pr":
+        if kind == "pr" and aging.is_dropped(snap, val):  # the owner took it off the board: nothing to wait on
+            why.append(f"{val} 보드에서 제외됨")
+        elif kind == "pr":
             st = str(states.get(val) or "").upper()
             if st not in ("MERGED", "CLOSED"):
                 return None
@@ -156,7 +160,9 @@ def _open_items(snap):
 def untracked_pr_refs(snap):
     """PR refs open cards hinge on that no unit's PR record knows: the github stream reads these once a pass."""
     known = pr_states(snap)
-    return sorted({r[3:] for c in _open_items(snap) for r in card_refs(c) if r.startswith("pr:") and r[3:] not in known})
+    import aging
+    return sorted({r[3:] for c in _open_items(snap) for r in card_refs(c) if r.startswith("pr:") and r[3:] not in known
+                   and not aging.is_dropped(snap, r[3:])})
 
 
 def close_moot(live=None):

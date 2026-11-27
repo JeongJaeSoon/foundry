@@ -156,7 +156,14 @@ def foreman_drift_line(snap):
         return None
     _side_write("watch-foreman-def.json", list(d))
     return (f"foreman restart needed: agents/foreman.md changed since the foreman session loaded it ({d[0]} -> {d[1]}); "
-            "restart it with the foundry-handoff skill's restart procedure")
+            f"restart it with the foundry-handoff skill's restart procedure (stop it with `{foreman_stop_cmd(snap)}`)")
+
+
+def foreman_stop_cmd(snap):
+    """`claude stop <short id>` for the current foreman: the name `foreman` is ambiguous once stale sessions
+    share it."""
+    sid = (snap.get("foreman_current") or {}).get("session")
+    return f"claude stop {sid[:8]}" if sid else "claude stop foreman"
 
 
 def heartbeat(now):
@@ -644,15 +651,15 @@ def cycle_pressure(now, p):
 # ---------- github, sessions, sync ----------
 
 def _pr_refs(snap):
+    import aging
     refs = {}
-    dropped = snap.get("pr_dropped") or {}
     for u in sorted(snap["units"].values(), key=lambda u: u["status"] == "done"):
         if u["kind"] == "foreman":
             continue
         if u["status"] == "done":  # only until GitHub says the PR is closed or merged: then it leaves the board
             states = {f"{p.get('repo')}#{p.get('number')}": str(p.get("state") or "").upper() for p in u.get("prs") or []}
             for ref in list(u["keys"].get("pr") or []) + list(states):
-                if ref not in dropped and states.get(ref, "OPEN") == "OPEN":
+                if not aging.is_dropped(snap, ref) and states.get(ref, "OPEN") == "OPEN":
                     refs.setdefault(ref, u["id"])
             continue
         for ref in u["keys"].get("pr") or []:

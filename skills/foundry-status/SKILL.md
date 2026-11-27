@@ -13,6 +13,13 @@ The board is derived from state; nobody edits it. A row's group and its state ce
 (board.py `unit_state`): a finished unit with a PR still open is 팀 대기, one with a merged PR no release tag holds yet
 (in a repo with a release step) is 머지됨·릴리스 대기, a done release unit or one whose PRs are released is 릴리스 완료.
 
+## PRs that are not the owner's
+
+When the owner says a PR or a whole repo on the board is not theirs (「내 담당 아님」, 「제외해줘」), run
+`foundry pr drop <owner/repo#n> --reason "<the owner's words>"`, or `foundry pr drop --repo <owner/repo | owner/*>
+--reason "..."` for every PR there, new ones included; its open pr-aging / pr-orphan cards close by themselves.
+Answering a pr-aging card with `drop` does the same for that PR. `foundry pr undrop <ref> | --repo <pattern>` undoes it.
+
 ## Tidying the finished list
 
 When the owner asks to clean up the board's finished units (「완료된 거 정리해줘」, 「보드 정리해줘」), archive them:

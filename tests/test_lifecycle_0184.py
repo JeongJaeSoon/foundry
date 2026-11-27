@@ -112,7 +112,7 @@ class Leftovers(tf.Housekeeping):
     def test_a_change_found_nowhere_stays_a_proposal_that_names_it(self):
         c = self.cands()["merged-dirty"]
         self.assertEqual((c["safe"], c["suggest"]), (False, "propose"))
-        self.assertIn("wip.txt (new, 0 lines)", c["note"])
+        self.assertIn("wip.txt new, 0 lines", c["note"])
         self.commit(self.wt(), "app.py", "print(1)\n", "unpushed fix")
         c = self.cands()["merged-clean"]
         self.assertEqual(c["suggest"], "propose")

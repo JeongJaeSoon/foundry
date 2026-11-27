@@ -255,12 +255,12 @@ def load_rows(snap=None, prs=None, p=None, logins=None):
     import factory
     snap = snap or cl.load()
     prs = factory.collect_prs(snap) if prs is None else prs
-    dropped = snap.get("pr_dropped") or {}
+    import aging
     pool = pool_logins(p)
     mine = {}
     for ref, pr in prs.items():
         # Approved by someone else still waits on the others asked; one who already approved (✓) is done.
-        if ref in dropped or factory.stage_of(pr) not in factory.OPEN_STAGES:
+        if aging.is_dropped(snap, ref) or factory.stage_of(pr) not in factory.OPEN_STAGES:
             continue
         done = {str(x).lower() for x in pr.get("approvers") or []}
         for login in split_reviewers(pr, pool, _picked(snap, ref, pr.get("unit")))[0]:

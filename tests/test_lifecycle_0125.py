@@ -120,7 +120,7 @@ class WaitingPRs(_Clock):
         self.foundry("pr", "age")
         cards = self.cards("pr-aging:")
         self.assertEqual(list(cards), [f"pr-aging:{REF}"])
-        self.assertEqual([o["key"] for o in cards[f"pr-aging:{REF}"]["options"]], ["close", "reassign", "wait"])
+        self.assertEqual([o["key"] for o in cards[f"pr-aging:{REF}"]["options"]], ["close", "reassign", "wait", "drop"])
 
     def test_a_done_units_open_pr_asks_adopt_or_drop_and_drop_leaves_the_board(self):
         self.foundry("unit", "status", "alpha", "done", "--note", "shipped")

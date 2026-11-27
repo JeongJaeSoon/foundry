@@ -71,7 +71,9 @@ Linux.
 `--agents` hands the foreman its agent definition with this install's MCP server names (`foundry mcp agent`): a
 `--bg` session takes its main agent from the agent file, whose generic names (`mcp__atlassian__…`) match no server,
 before the plugin re-registers it. To restart a running foreman with it: in the foreman, write its handoff (the
-foundry-handoff skill), then `claude stop foreman`, then run the start line above.
+foundry-handoff skill), then `claude stop <id>` with the current foreman's short id (the board's "foreman restart
+needed" hint prints the command; `claude stop foreman` is ambiguous once stale sessions share the name), then run
+the start line above.
 
 Nothing is installed as a system service. The foreman arms `foundry watch stream --kind github|sessions|pressure|sync|stalls`
 under the Monitor tool; CronCreate is used only for prefs `schedules`. `foundry up` prints what to arm.

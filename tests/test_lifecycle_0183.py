@@ -41,4 +41,4 @@ class ForemanAgents(tf.Base):
         with open(os.path.join(ROOT, "install.sh")) as f:  # it prints foreman_command (`foundry foreman line`)
             self.assertIn('foundry.py" foreman line', f.read())
         with open(os.path.join(ROOT, "skills", "foundry-handoff", "SKILL.md")) as f:
-            self.assertIn("claude stop foreman", f.read())
+            self.assertIn("claude stop <id>", f.read())
