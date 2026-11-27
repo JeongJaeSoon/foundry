@@ -106,5 +106,6 @@
  "section_cancelled": "취소",
  "archived_n": "보관 {n}건 · foundry board --archived",
  "stale_foremen": "오래된 foreman {n}개",
+ "agent_rm_failed": "claude rm 실패 {n}개",
  "stale_foremen_failed": "오래된 foreman {n}개 (중지 실패)"
 }

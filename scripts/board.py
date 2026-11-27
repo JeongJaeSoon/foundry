@@ -248,6 +248,7 @@ def _finish(snap, m):
     m.setdefault("sync_lagging", [])
     m.setdefault("stale_foremen", 0)
     m.setdefault("stale_foremen_failed", 0)
+    m.setdefault("agent_rm_failed", 0)
     for sec in m["sections"]:
         for r in sec["rows"]:
             if not r["sync_text"] and r["id"] in m["sync_lagging"]:
@@ -510,6 +511,8 @@ def band(m):
     if m.get("stale_foremen"):
         parts.append(i18n.t("board.stale_foremen_failed" if m.get("stale_foremen_failed") else "board.stale_foremen",
                             n=m["stale_foremen"]))
+    if m.get("agent_rm_failed"):
+        parts.append(i18n.t("board.agent_rm_failed", n=m["agent_rm_failed"]))
     if m["halts"]:
         parts.insert(0, f"ANDON {len(m['halts'])}")
     return " | ".join(parts)

@@ -106,5 +106,6 @@
  "section_cancelled": "取消",
  "archived_n": "アーカイブ {n} 件 · foundry board --archived",
  "stale_foremen": "古い foreman {n} 件",
+ "agent_rm_failed": "claude rm 失敗 {n} 件",
  "stale_foremen_failed": "古い foreman {n} 件（停止失敗）"
 }

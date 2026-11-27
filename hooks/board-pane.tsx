@@ -112,6 +112,7 @@ export const PANE_KO = {
   pill_run: '진행 {n}',
   pill_stale_foremen: '오래된 foreman {n}개',
   pill_stale_foremen_failed: '오래된 foreman {n}개 (중지 실패)',
+  pill_agent_rm_failed: 'claude rm 실패 {n}개',
   pr_tab_all: 'PR 탭에서 전체 보기',
   pr_tab_view: 'PR 탭에서 보기',
   prstate_approved: '승인 · 머지 대기',
@@ -728,6 +729,7 @@ function bandPills(m: BoardModel, pc = false): Pill[] {
   const out: Pill[] = []
   if (m.halts?.length) out.push({ key: 'andon', text: `ANDON ${m.halts.length}`, tone: 'alarm' })
   if (m.foreman_down) out.push({ key: 'foreman', text: 'foreman down', tone: 'alarm' })
+  if (m.agent_rm_failed) out.push({ key: 'agent-rm-failed', text: t('pill_agent_rm_failed', { n: m.agent_rm_failed }), tone: 'others' })
   if (m.stale_foremen) out.push({ key: 'stale-foremen', text: t(m.stale_foremen_failed ? 'pill_stale_foremen_failed' : 'pill_stale_foremen', { n: m.stale_foremen }), tone: 'others' })
   const stalled = m.sections.flatMap(s => s.rows).filter(r => r.stall).length
   if (stalled) out.push({ key: 'stall', text: t('pill_stall', { n: stalled }), tone: 'alarm' })

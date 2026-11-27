@@ -194,5 +194,6 @@
  "stall_escalated": "二度目の詰まり: 決定カードへ",
  "pill_archived": "アーカイブ {n}",
  "pill_stale_foremen": "古い foreman {n} 件",
+ "pill_agent_rm_failed": "claude rm 失敗 {n} 件",
  "pill_stale_foremen_failed": "古い foreman {n} 件（停止失敗）"
 }

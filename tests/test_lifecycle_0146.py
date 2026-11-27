@@ -150,21 +150,23 @@ class SweepAgents(tl.Launcher):
     def test_removes_superseded_and_done_unit_rows_only(self):
         self.claude({"agents": self.rows()})
         _, out = self.foundry("sweep", "agents", "--dry-run")
-        self.assertEqual(sorted(r["id"] for r in out["would_remove"]), ["a0", "b1"])
+        # 0.1.132: a7 (another cwd: the worktree moved) goes too; the name is what makes a row foundry's
+        self.assertEqual(sorted(r["id"] for r in out["would_remove"]), ["a0", "a7", "b1"])
         self.assertEqual(self.rm_calls(), [])
         _, out = self.foundry("sweep", "agents")
-        self.assertEqual(sorted(self.rm_calls()), ["a0", "b1"])
+        self.assertEqual(sorted(self.rm_calls()), ["a0", "a7", "b1"])
         reasons = {r["id"]: r["reason"] for r in out["removed"]}
-        self.assertEqual(reasons, {"a0": "superseded by a newer session of the unit", "b1": "unit done"})
+        self.assertEqual(reasons, {"a0": "superseded by a newer session of the unit",
+                                   "a7": "superseded by a newer session of the unit", "b1": "unit done"})
         pruned = [r for r in self.journal() if r["op"] == "session.pruned"]
-        self.assertEqual(sorted(r["ids"][0] for r in pruned), ["a0", "b1"])
+        self.assertEqual(sorted(r["ids"][0] for r in pruned), ["a0", "a7", "b1"])
 
     def test_ttl_comes_from_prefs(self):
         with open(os.path.join(self.dir, "prefs.json"), "w") as f:
             json.dump({"sweep": {"agent_session_ttl_minutes": 120}}, f)
         self.claude({"agents": self.rows()})
         _, out = self.foundry("sweep", "agents", "--dry-run")
-        self.assertEqual([r["id"] for r in out["would_remove"]], ["a0"])
+        self.assertEqual([r["id"] for r in out["would_remove"]], ["a0", "a7"])
 
     def test_a_failed_listing_removes_nothing(self):
         self.env["FOUNDRY_CLAUDE"] = "false"
@@ -174,7 +176,7 @@ class SweepAgents(tl.Launcher):
     def test_sweep_run_includes_it(self):
         self.claude({"agents": self.rows()})
         _, out = self.foundry("sweep", "run", "--dry-run")
-        self.assertEqual(sorted(r["id"] for r in out["agent_sessions"]["would_remove"]), ["a0", "b1"])
+        self.assertEqual(sorted(r["id"] for r in out["agent_sessions"]["would_remove"]), ["a0", "a7", "b1"])
 
 
 for _cls in (ResumeInPlace, SweepAgents):  # the launcher fixture, not its tests

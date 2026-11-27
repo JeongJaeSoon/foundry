@@ -64,14 +64,94 @@ def _started(e):
         return None
 
 
-def prune_agent_sessions(dry_run=False, now=None):
-    """`claude rm` finished lead/boss rows that would otherwise pile up in `claude agents`.
+RM_RETRY = 24 * 3600  # seconds before a failed `claude rm` of one row is tried again
 
-    A row goes only when all hold: its name is a foundry session we recorded and its cwd is that session's;
-    state done or stopped (never working or awaiting input); no worktree of Claude's own (rm would delete it);
-    started more than prefs `sweep.agent_session_ttl_minutes` ago; and its unit is done or cancelled, or a newer
-    row of the same name exists and it is not the recorded session. So an open unit keeps its newest row and the
-    one foundry resumes. A failed listing removes nothing. Each removal is journaled as `session.pruned`."""
+
+def _op_rm_failed(s, r, ts):
+    s.setdefault("agent_rm_failed", {})[r["id"]] = {"name": r.get("name"), "error": r.get("error"), "ts": ts}
+
+
+def _op_pruned(s, r, ts):
+    for rid in r.get("ids") or []:
+        (s.get("agent_rm_failed") or {}).pop(rid, None)
+
+
+OPS = {"session.rm_failed": _op_rm_failed, "session.pruned": _op_pruned}
+STATE = {"agent_rm_failed": {}}
+
+
+def board(snap, m):
+    """`claude rm` failures backing off: shown only while there are some."""
+    t = cl.now()
+    m["agent_rm_failed"] = sum(1 for x in (snap.get("agent_rm_failed") or {}).values()
+                               if (when := cl.parse_ts(x.get("ts"))) and (t - when).total_seconds() < RM_RETRY)
+
+
+def _finished(e):
+    import launcher
+    return launcher.classify(e)[0] in ("done", "stopped") or str(e.get("status") or e.get("state") or "").lower() == "failed"
+
+
+def _rid(e):
+    return str(e.get("id") or e.get("bgId") or e.get("shortId") or "")
+
+
+def _lead_rows(snap, entries):
+    """[(entry, name, unit id, reason)] for finished lead/boss rows foundry may remove: the name is a session foundry
+    recorded, and its unit is done or cancelled, or a newer row of the name exists and it is not the recorded one
+    (an open unit keeps its newest row and the one foundry resumes)."""
+    import launcher
+    by_name = {}
+    for e in entries:
+        if str(e.get("name") or "").startswith(AGENT_PREFIXES) and e["name"] in snap["sessions"]:
+            by_name.setdefault(e["name"], []).append(e)
+    out = []
+    for name, rows in sorted(by_name.items()):
+        sess = snap["sessions"][name]
+        u = snap["units"].get(sess.get("unit") or "") or {}
+        closed = u.get("status") in graph.CLOSED
+        newest = max((_started(e) or 0) for e in rows)
+        for e in rows:
+            if not _finished(e):
+                continue
+            mine = _rid(e) == str(sess.get("bg_id") or "") or sess.get("session_id") in launcher.entry_ids(e)
+            if closed:
+                out.append((e, name, sess.get("unit"), f"unit {u.get('status')}"))
+            elif (_started(e) or 0) < newest and not mine:
+                out.append((e, name, sess.get("unit"), "superseded by a newer session of the unit"))
+    return out
+
+
+def _foreman_rows(snap, entries):
+    """[(entry, name, None, reason)] for foreman rows foundry started that are not the current foreman: finished, or
+    stopped by `foundry foreman prune` (or found gone) and still listed with no live process."""
+    import launcher
+    cur = (snap.get("foreman_current") or {}).get("session")
+    if not cur:
+        return []
+    ours = set(snap.get("foreman_sessions") or {}) | {
+        sid for sid, x in (snap.get("foundry_sessions") or {}).items() if x.get("role") == "foreman" and not x.get("unit")}
+    stopped = set(snap.get("foreman_stopped") or {}) | set(snap.get("foreman_gone") or {}) | {
+        x.get("session") for x in ((snap.get("foreman_prune") or {}).get("stopped") or [])}
+    out = []
+    for e in entries:
+        sid = e.get("sessionId")
+        if e.get("name") != launcher.FOREMAN_NAME or not sid or sid == cur or sid not in ours:
+            continue
+        if _finished(e):
+            out.append((e, e["name"], None, "foreman session finished"))
+        elif sid in stopped and (e.get("pid") in (None, "") or not launcher.pid_alive(e["pid"])):
+            out.append((e, e["name"], None, "foreman session stopped, still listed"))
+    return out
+
+
+def prune_agent_sessions(dry_run=False, now=None):
+    """`claude rm` (plain: never --discard-unpushed or --force-remove-worktree) the finished foundry rows that would
+    otherwise pile up in `claude agents`: lead/boss rows of a done or cancelled unit and older duplicates of an open
+    unit's (_lead_rows), and stopped foreman rows that are not the current one (_foreman_rows). Never a row of another
+    name, a working or waiting row with a live process, one with a worktree of Claude's own (rm would delete it), or
+    one started less than prefs `sweep.agent_session_ttl_minutes` ago. A failed listing removes nothing. Each removal
+    is journaled as `session.pruned`; a failed rm once as `session.rm_failed`, and not tried again for RM_RETRY."""
     import launcher
     import prefs
     ttl = float(((prefs.load().get("sweep") or {}).get("agent_session_ttl_minutes", 30))) * 60
@@ -80,41 +160,29 @@ def prune_agent_sessions(dry_run=False, now=None):
     if entries is None:
         return {"error": "claude agents --json --all failed; nothing removed"}
     snap = cl.load()
-    by_name = {}
-    for e in entries:
-        if str(e.get("name") or "").startswith(AGENT_PREFIXES):
-            by_name.setdefault(e["name"], []).append(e)
-    out = []
-    for name, rows in sorted(by_name.items()):
-        sess = snap["sessions"].get(name)
-        if not sess:
+    failed = snap.get("agent_rm_failed") or {}
+    out, backing = [], []
+    for e, name, unit, reason in _lead_rows(snap, entries) + _foreman_rows(snap, entries):
+        rid, t = _rid(e), _started(e)
+        if not rid or t is None or now - t < ttl or e.get("worktree") or e.get("worktreePath"):
             continue
-        u = snap["units"].get(sess.get("unit") or "") or {}
-        closed = u.get("status") in graph.CLOSED
-        where = {os.path.realpath(x) for x in (sess.get("cwd"), (u.get("worktree") or {}).get("path")) if x}
-        newest = max((_started(e) or 0) for e in rows)
-        for e in rows:
-            rid = str(e.get("id") or e.get("bgId") or e.get("shortId") or "")
-            t = _started(e)
-            if not rid or t is None or now - t < ttl:
-                continue
-            if launcher.classify(e)[0] not in ("done", "stopped") or e.get("worktree") or e.get("worktreePath"):
-                continue
-            if os.path.realpath(e.get("cwd") or "/nonexistent") not in where:
-                continue
-            superseded = t < newest and rid != str(sess.get("bg_id") or "") and sess.get("session_id") not in launcher.entry_ids(e)
-            if not (closed or superseded):
-                continue
-            reason = f"unit {u.get('status')}" if closed else "superseded by a newer session of the unit"
-            rec = {"name": name, "unit": sess.get("unit"), "id": rid, "reason": reason}
-            if not dry_run:
-                rc, _, err = launcher.run([*launcher.claude_bin(), "rm", rid])
-                if rc:
-                    rec["error"] = (err or "").strip()[-200:] or f"exit {rc}"
-                else:
-                    cl.append("session.pruned", name=name, ids=[rid], unit=sess.get("unit"), reason=reason)
-            out.append(rec)
-    return {"removed" if not dry_run else "would_remove": out}
+        last = cl.parse_ts((failed.get(rid) or {}).get("ts"))
+        if last and now - last.timestamp() < RM_RETRY:
+            backing.append(rid)
+            continue
+        rec = {"name": name, "unit": unit, "id": rid, "reason": reason}
+        if not dry_run:
+            rc, out_, err = launcher.run([*launcher.claude_bin(), "rm", rid])
+            if rc:
+                rec["error"] = (err or out_ or "").strip()[-200:] or f"exit {rc}"
+                cl.append("session.rm_failed", id=rid, name=name, error=rec["error"])
+            else:
+                cl.append("session.pruned", name=name, ids=[rid], unit=unit, reason=reason)
+        out.append(rec)
+    res = {"removed" if not dry_run else "would_remove": out}
+    if backing:
+        res["backing_off"] = backing
+    return res
 
 
 def announce(cands):
@@ -191,7 +259,8 @@ def add_cli(sp):
     r = sub.add_parser("run")
     r.add_argument("--dry-run", action="store_true")
     r.set_defaults(func=cmd_sweep)
-    g = sub.add_parser("agents", help="claude rm finished lead/boss rows of done units or superseded sessions")
+    g = sub.add_parser("agents", help="claude rm finished foundry rows: lead/boss rows of closed units or "
+                                         "superseded sessions, stopped non-current foreman rows")
     g.add_argument("--dry-run", action="store_true")
     g.set_defaults(func=cmd_sweep)
     w = sub.add_parser("remove-worktree", help="remove one git worktree (an owner-approved proposal): refused "

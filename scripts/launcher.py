@@ -44,10 +44,11 @@ def _op_foreman_prune(s, r, ts):
     for x in r.get("stopped") or []:  # claude said it no longer exists: a listing that still shows it is not retried
         if x.get("note") == GONE_NOTE:
             s.setdefault("foreman_gone", {})[x["session"]] = ts
+        s.setdefault("foreman_stopped", {})[x["session"]] = ts  # the sweep `claude rm`s it while it stays listed
 
 
 OPS = {"unit.adopted": _op_adopted, "foreman.current": _op_foreman_current, "foreman.prune": _op_foreman_prune}
-STATE = {"foreman_current": None, "foreman_sessions": {}, "foreman_prune": None, "foreman_gone": {}}
+STATE = {"foreman_current": None, "foreman_sessions": {}, "foreman_prune": None, "foreman_gone": {}, "foreman_stopped": {}}
 UNIT_FIELDS = {"adopted": None}
 FOREMAN_NAME = "foreman"  # the `claude --bg -n` name of foundry's foreman start line (firstrun uses this one)
 

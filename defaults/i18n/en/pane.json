@@ -194,5 +194,6 @@
  "stall_escalated": "second stall: escalated to a decision card",
  "pill_archived": "archived {n}",
  "pill_stale_foremen": "stale foremen: {n}",
+ "pill_agent_rm_failed": "claude rm failed: {n}",
  "pill_stale_foremen_failed": "stale foremen: {n} (stop failed)"
 }
